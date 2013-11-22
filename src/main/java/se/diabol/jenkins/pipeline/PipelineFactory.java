@@ -18,21 +18,19 @@ If not, see <http://www.gnu.org/licenses/>.
 package se.diabol.jenkins.pipeline;
 
 import hudson.ExtensionList;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.Cause;
-import hudson.model.CauseAction;
-import hudson.model.Result;
-import hudson.model.User;
+import hudson.model.*;
 import hudson.scm.ChangeLogSet;
 import hudson.scm.RepositoryBrowser;
+import hudson.tasks.Publisher;
 import hudson.tasks.UserAvatarResolver;
 import hudson.tasks.test.AggregatedTestResultAction;
+import hudson.util.DescribableList;
 import hudson.util.RunList;
 import jenkins.model.Jenkins;
 import se.diabol.jenkins.pipeline.model.*;
 import se.diabol.jenkins.pipeline.model.status.Status;
 import se.diabol.jenkins.pipeline.model.status.StatusFactory;
+import se.diabol.jenkins.pipeline.trigger.ManualTrigger;
 import se.diabol.jenkins.pipeline.util.PipelineUtils;
 import se.diabol.jenkins.pipeline.util.ProjectUtil;
 
@@ -83,8 +81,27 @@ public abstract class PipelineFactory {
         String taskName = property != null && !isNullOrEmpty(property.getTaskName())
                 ? property.getTaskName() : project.getDisplayName();
         Status status = project.isDisabled() ? disabled() : idle();
-        return new Task(project.getName(), taskName, null, status, project.getUrl(), false, null);
+
+        return new Task(project.getName(), taskName, null, status, project.getUrl(), isManualTrigger(project), null);
     }
+
+    public static boolean isManualTrigger(AbstractProject<?, ?> project) {
+        List<AbstractProject> upstreamProjects = project.getUpstreamProjects();
+        if (upstreamProjects.size() == 1) {
+            AbstractProject upstreamProject = upstreamProjects.get(0);
+            DescribableList<Publisher, Descriptor<Publisher>> upstreamPublishersLists = upstreamProject.getPublishersList();
+            for (Publisher upstreamPub : upstreamPublishersLists) {
+                if (upstreamPub instanceof ManualTrigger) {
+                    AbstractProject downstreamProject = ((ManualTrigger) upstreamPub).getProject();
+                    if (project.equals(downstreamProject)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
 
     /**
      * Helper method
@@ -169,7 +186,7 @@ public abstract class PipelineFactory {
             for (Stage stage : pipeline.getStages()) {
                 List<Task> tasks = new ArrayList<Task>();
                 for (Task task : stage.getTasks()) {
-                    AbstractProject<?,?> taskProject = getProject(task);
+                    AbstractProject<?, ?> taskProject = getProject(task);
                     AbstractBuild currentBuild = match(taskProject.getBuilds(), firstBuild);
                     tasks.add(getTask(task, currentBuild));
                 }
@@ -208,7 +225,7 @@ public abstract class PipelineFactory {
         AbstractProject project = getProject(task);
         Status status = resolveStatus(project, build);
         String link = build == null || status.isIdle() || status.isQueued() ? task.getLink() : build.getUrl();
-        String buildId =  build == null || status.isIdle() || status.isQueued() ? null : String.valueOf(build.getNumber());
+        String buildId = build == null || status.isIdle() || status.isQueued() ? null : String.valueOf(build.getNumber());
         return new Task(task.getId(), task.getName(), buildId, status, link, task.isManual(), getTestResult(build));
     }
 

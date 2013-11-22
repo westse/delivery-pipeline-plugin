@@ -48,11 +48,19 @@ public class ManualTrigger extends BuildTrigger {
         triggerConfigs.add(config);
     }
 
+    public AbstractProject getProject() {
+        if (triggerConfigs != null && triggerConfigs.size() == 1) {
+            return triggerConfigs.get(0).getProject();
+        }
+        return null;
+    }
+
     public void trigger(AbstractBuild upstreamBuild, AbstractProject downstream) {
         try {
             for (ManualTriggerConfig manualTriggerConfig : triggerConfigs) {
                 if (manualTriggerConfig.getProject().equals(downstream)) {
-                    manualTriggerConfig.perform(upstreamBuild, null, new StreamBuildListener(System.out, Charset.defaultCharset()));
+                     manualTriggerConfig.perform(upstreamBuild, null, new StreamBuildListener(System.out, Charset.defaultCharset()));
+
                 }
             }
         } catch (InterruptedException e) {

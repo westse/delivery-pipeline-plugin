@@ -45,7 +45,7 @@ public class ManualTriggerConfig extends BuildTriggerConfig {
     }
 
     protected Future schedule(AbstractBuild<?, ?> build, AbstractProject project, List<Action> list) throws InterruptedException, IOException {
-        //TODO add who triggered manual step
+        list.add(new CauseAction(new Cause.UserCause()));
         return project.scheduleBuild2(project.getQuietPeriod(),
                 new Cause.UpstreamCause((Run) build),
                 list.toArray(new Action[list.size()]));
