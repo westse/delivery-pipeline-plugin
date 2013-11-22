@@ -45,8 +45,8 @@ import java.util.List;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static se.diabol.jenkins.pipeline.model.status.StatusFactory.idle;
-import static org.mockito.Mockito.*;
 
 
 @RunWith(MockitoJUnitRunner.class)
@@ -582,7 +582,7 @@ public class PipelineFactoryTest {
     }
 
     @Test
-    public void testGetTriggeredByWithCulprits() throws Exception {
+    public void testGetTriggeredByWithChangeLog() throws Exception {
         FreeStyleProject project = jenkins.createFreeStyleProject("build");
         FakeRepositoryBrowserSCM scm = new FakeRepositoryBrowserSCM();
         scm.addChange().withAuthor("test-user").withMsg("Fixed bug");
@@ -597,6 +597,38 @@ public class PipelineFactoryTest {
         assertEquals("SYSTEM", user2.getName());
 
     }
+
+    @Test
+    public void testGetTriggeredByWithCulprits() throws Exception {
+        FreeStyleProject project = jenkins.createFreeStyleProject("build");
+        FakeRepositoryBrowserSCM scm = new FakeRepositoryBrowserSCM();
+        scm.addChange().withAuthor("test-user-fail").withMsg("Fixed bug");
+        scm.addChange().withAuthor("test-user-fail2").withMsg("Fixed bug");
+        project.setScm(scm);
+        project.getBuildersList().add(new FailureBuilder());
+        project.scheduleBuild2(0);
+        jenkins.waitUntilNoActivity();
+
+        scm = new FakeRepositoryBrowserSCM();
+        scm.addChange().withAuthor("test-user").withMsg("Fixed bug");
+        project.setScm(scm);
+
+        project.scheduleBuild(new Cause.UserIdCause());
+        jenkins.waitUntilNoActivity();
+
+        AbstractBuild build = project.getLastBuild();
+
+        assertEquals(3, build.getCulprits().size());
+
+        List<UserInfo> users = PipelineFactory.getTriggeredBy(project.getLastBuild());
+        assertEquals(2, users.size());
+        UserInfo user1 = users.get(0);
+        assertEquals("test-user", user1.getName());
+        UserInfo user2 = users.get(1);
+        assertEquals("SYSTEM", user2.getName());
+
+    }
+
 
     @Test
     public void testGetUpstreamBuildProjectRenamed() {

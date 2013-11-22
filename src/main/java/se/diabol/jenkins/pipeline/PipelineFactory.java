@@ -36,12 +36,7 @@ import se.diabol.jenkins.pipeline.util.ProjectUtil;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Iterables.concat;
@@ -242,13 +237,10 @@ public abstract class PipelineFactory {
     }
 
     protected static List<UserInfo> getTriggeredBy(AbstractBuild<?, ?> build) {
-        Set<User> users = build.getCulprits();
         List<UserInfo> triggeredBy = new ArrayList<UserInfo>();
-
-        for (User user : users) {
-            triggeredBy.add(getUser(user));
+        for (ChangeLogSet.Entry entry : build.getChangeSet()) {
+            triggeredBy.add(getUser(entry.getAuthor()));
         }
-
         Cause.UserIdCause cause = build.getCause(Cause.UserIdCause.class);
         if (cause != null && cause.getUserName() != null) {
             UserInfo user = getUser(Jenkins.getInstance().getUser(cause.getUserName()));
