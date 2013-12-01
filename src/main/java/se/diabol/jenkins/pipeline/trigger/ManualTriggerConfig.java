@@ -23,6 +23,7 @@ import hudson.plugins.parameterizedtrigger.AbstractBuildParameters;
 import hudson.plugins.parameterizedtrigger.BuildTriggerConfig;
 import hudson.plugins.parameterizedtrigger.ResultCondition;
 import hudson.util.ListBoxModel;
+import jenkins.model.Jenkins;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import se.diabol.jenkins.pipeline.util.ProjectUtil;
@@ -41,7 +42,7 @@ public class ManualTriggerConfig extends BuildTriggerConfig {
     }
 
     public AbstractProject getProject() {
-        return ProjectUtil.getProject(getProjects());
+        return ProjectUtil.getProject(getProjects(), Jenkins.getInstance());
     }
 
     protected Future schedule(AbstractBuild<?, ?> build, AbstractProject project, List<Action> list) throws InterruptedException, IOException {
