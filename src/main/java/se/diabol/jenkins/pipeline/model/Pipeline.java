@@ -24,16 +24,17 @@ import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
 
 import java.util.List;
+import java.util.Set;
 
 import static com.google.common.base.Objects.toStringHelper;
 
-@ExportedBean(defaultVisibility = 100)
+@ExportedBean(defaultVisibility = AbstractItem.VISIBILITY)
 public class Pipeline extends AbstractItem {
     private List<Stage> stages;
 
     private String version;
 
-    private List<UserInfo> triggeredBy;
+    private Set<UserInfo> triggeredBy;
 
     private boolean aggregated;
 
@@ -41,7 +42,7 @@ public class Pipeline extends AbstractItem {
 
     private List<Change> changes;
 
-    public Pipeline(String name, String version, List<Change> changes, String timestamp, List<UserInfo> triggeredBy,
+    public Pipeline(String name, String version, List<Change> changes, String timestamp, Set<UserInfo> triggeredBy,
                     List<Stage> stages, boolean aggregated) {
         super(name);
         this.version = version;
@@ -73,7 +74,7 @@ public class Pipeline extends AbstractItem {
     }
 
     @Exported
-    public List<UserInfo> getTriggeredBy() {
+    public Set<UserInfo> getTriggeredBy() {
         return triggeredBy;
     }
 
@@ -94,10 +95,10 @@ public class Pipeline extends AbstractItem {
 
     @Override
     public boolean equals(Object o) {
-        return o == this || o instanceof Pipeline && equals((Pipeline) o);
+        return o == this || o instanceof Pipeline && equalsSelf((Pipeline) o);
     }
 
-    private boolean equals(Pipeline o) {
+    private boolean equalsSelf(Pipeline o) {
         return super.equals(o) && new EqualsBuilder().appendSuper(super.equals(o)).append(stages, o.stages).append(version, o.version).isEquals();
     }
 
