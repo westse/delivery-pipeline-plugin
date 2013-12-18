@@ -18,14 +18,12 @@ If not, see <http://www.gnu.org/licenses/>.
 package se.diabol.jenkins.pipeline.trigger;
 
 import hudson.Extension;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.DependencyGraph;
-import hudson.model.StreamBuildListener;
+import hudson.model.*;
 import hudson.plugins.parameterizedtrigger.BuildTrigger;
 import hudson.plugins.parameterizedtrigger.ResultCondition;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Publisher;
+import hudson.util.DescribableList;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.IOException;
@@ -74,6 +72,21 @@ public class ManualTrigger extends BuildTrigger {
     public List<ManualTriggerConfig> getTriggerConfigs() {
         return triggerConfigs;
     }
+
+
+    public static ManualTrigger getTrigger(AbstractProject<?, ?> project, AbstractProject<?, ?> downstream) {
+        DescribableList<Publisher, Descriptor<Publisher>> upstreamPublishersLists = project.getPublishersList();
+        for (Publisher upstreamPub : upstreamPublishersLists) {
+            if (upstreamPub instanceof ManualTrigger) {
+                AbstractProject downstreamProject = ((ManualTrigger) upstreamPub).getProject();
+                if (downstream.equals(downstreamProject)) {
+                    return (ManualTrigger) upstreamPub;
+                }
+            }
+        }
+        return null;
+    }
+
 
     @Override
     public void buildDependencyGraph(AbstractProject owner, DependencyGraph graph) {

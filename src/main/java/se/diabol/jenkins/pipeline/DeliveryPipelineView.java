@@ -23,11 +23,13 @@ import hudson.model.*;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import org.kohsuke.stapler.*;
+import org.kohsuke.stapler.bind.JavaScriptMethod;
 import org.kohsuke.stapler.export.Exported;
 import se.diabol.jenkins.pipeline.model.Component;
 import se.diabol.jenkins.pipeline.model.Pipeline;
 import se.diabol.jenkins.pipeline.sort.ComponentComparator;
 import se.diabol.jenkins.pipeline.sort.ComponentComparatorDescriptor;
+import se.diabol.jenkins.pipeline.trigger.ManualTrigger;
 import se.diabol.jenkins.pipeline.util.PipelineUtils;
 import se.diabol.jenkins.pipeline.util.ProjectUtil;
 
@@ -212,6 +214,18 @@ public class DeliveryPipelineView extends View {
         }
         LOG.fine("Returning: " + components);
         return components;
+    }
+
+
+    @JavaScriptMethod
+    public void triggerManual(String projectName, String upstreamName, String buildId) {
+        LOG.fine("Trigger manual build " + projectName + " " + upstreamName + " " + buildId);
+        AbstractProject project = ProjectUtil.getProject(projectName, getOwnerItemGroup());
+        AbstractProject upstream = ProjectUtil.getProject(upstreamName, getOwnerItemGroup());
+        ManualTrigger trigger = ManualTrigger.getTrigger(upstream, project);
+        AbstractBuild upstreamBuild = upstream.getBuildByNumber(Integer.parseInt(buildId));
+        trigger.trigger(upstreamBuild, project);
+
     }
 
     @Override

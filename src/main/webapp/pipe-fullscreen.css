@@ -203,6 +203,18 @@ div.pipelineerror {
     display: none;
 }
 
+div.taskname {
+    float: left;
+}
+
+div.task-details {
+    clear: both;
+}
+
+div.task-manual {
+    float: right;
+}
+
 div.left {
     float: left;
 }

@@ -5,6 +5,7 @@ import org.kohsuke.stapler.export.ExportedBean;
 
 @ExportedBean(defaultVisibility = 100)
 public class ManualStep {
+
     private String upstreamProject;
     private String upstreamId;
     private boolean enabled;

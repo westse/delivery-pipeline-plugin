@@ -81,7 +81,11 @@ public abstract class PipelineFactory {
         String taskName = property != null && !isNullOrEmpty(property.getTaskName())
                 ? property.getTaskName() : project.getDisplayName();
         Status status = project.isDisabled() ? disabled() : idle();
-        return new Task(project.getRelativeNameFrom(Jenkins.getInstance()), taskName, null, status, project.getUrl(), false, null);
+        ManualStep manualStep = null;
+        if (isManualTrigger(project)) {
+            manualStep = new ManualStep(project.getName(), null, false);
+        }
+        return new Task(project.getRelativeNameFrom(Jenkins.getInstance()), taskName, null, status, project.getUrl(), manualStep, null);
     }
 
     public static boolean isManualTrigger(AbstractProject<?, ?> project) {
@@ -135,9 +139,9 @@ public abstract class PipelineFactory {
                 if (currentBuild != null) {
                     Status status = resolveStatus(taskProject, currentBuild);
                     String link = status.isIdle() ? task.getLink() : currentBuild.getUrl();
-                    tasks.add(new Task(task.getId(), task.getName(), String.valueOf(currentBuild.getNumber()), status, link, task.isManual(), getTestResult(currentBuild)));
+                    tasks.add(new Task(task.getId(), task.getName(), String.valueOf(currentBuild.getNumber()), status, link, null, getTestResult(currentBuild)));
                 } else {
-                    tasks.add(new Task(task.getId(), task.getName(), null, StatusFactory.idle(), task.getLink(), task.isManual(), null));
+                    tasks.add(new Task(task.getId(), task.getName(), null, StatusFactory.idle(), task.getLink(), null, null));
                 }
             }
             stages.add(new Stage(stage.getName(), tasks, version));
@@ -186,7 +190,7 @@ public abstract class PipelineFactory {
                 for (Task task : stage.getTasks()) {
                     AbstractProject<?, ?> taskProject = getProject(task, context);
                     AbstractBuild currentBuild = match(taskProject.getBuilds(), firstBuild);
-                    tasks.add(getTask(task, currentBuild, context));
+                    tasks.add(getTask(task, currentBuild, firstBuild ,context));
                 }
                 stages.add(new Stage(stage.getName(), tasks));
             }
@@ -219,12 +223,23 @@ public abstract class PipelineFactory {
     }
 
 
-    private static Task getTask(Task task, AbstractBuild build, ItemGroup context) {
+    private static Task getTask(Task task, AbstractBuild build, AbstractBuild<?,?> firstBuild, ItemGroup context) {
         AbstractProject project = getProject(task, context);
         Status status = resolveStatus(project, build);
         String link = build == null || status.isIdle() || status.isQueued() ? task.getLink() : build.getUrl();
         String buildId = build == null || status.isIdle() || status.isQueued() ? null : String.valueOf(build.getNumber());
-        return new Task(task.getId(), task.getName(), buildId, status, link, task.isManual(), getTestResult(build));
+        ManualStep manualStep = null;
+        if (build == null && isManualTrigger(project)) {
+            AbstractProject<?,?> upstream = (AbstractProject<?,?>) project.getUpstreamProjects().get(0);
+            AbstractBuild upstreamBuild = match(upstream.getBuilds(), firstBuild);
+            if (upstreamBuild != null && !upstreamBuild.isBuilding()) {
+                manualStep = new ManualStep(upstream.getName(), String.valueOf(upstreamBuild.getNumber()), true);
+            } else {
+                manualStep = new ManualStep(upstream.getName(), null, false);
+            }
+        }
+
+        return new Task(task.getId(), task.getName(), buildId, status, link, manualStep, getTestResult(build));
     }
 
 

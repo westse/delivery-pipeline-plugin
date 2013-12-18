@@ -31,10 +31,10 @@ public class Task extends AbstractItem {
     private final String link;
     private final TestResult testResult;
     private final Status status;
-    private final boolean manual;
+    private final ManualStep manual;
     private final String buildId;
 
-    public Task(String id, String name, String buildId, Status status, String link, boolean manual,
+    public Task(String id, String name, String buildId, Status status, String link, ManualStep manual,
                 TestResult testResult) {
         super(name);
         this.id = id;
@@ -47,8 +47,14 @@ public class Task extends AbstractItem {
 
     @Exported
     public boolean isManual() {
+        return manual != null;
+    }
+
+    @Exported
+    public ManualStep getManualStep() {
         return manual;
     }
+
 
     @Exported
     public String getBuildId() {
