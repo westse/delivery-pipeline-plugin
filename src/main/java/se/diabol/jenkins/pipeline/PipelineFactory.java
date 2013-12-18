@@ -146,7 +146,7 @@ public abstract class PipelineFactory {
             }
             stages.add(new Stage(stage.getName(), tasks, version));
         }
-        return new Pipeline(pipeline.getName(), null, null, null, null,null, stages, true);
+        return new Pipeline(pipeline.getName(), null, null, null, null, null, stages, true);
     }
 
     private static AbstractBuild getHighestBuild(List<Task> tasks, AbstractProject firstProject, ItemGroup context) {
@@ -190,7 +190,7 @@ public abstract class PipelineFactory {
                 for (Task task : stage.getTasks()) {
                     AbstractProject<?, ?> taskProject = getProject(task, context);
                     AbstractBuild currentBuild = match(taskProject.getBuilds(), firstBuild);
-                    tasks.add(getTask(task, currentBuild, firstBuild ,context));
+                    tasks.add(getTask(task, currentBuild, firstBuild, context));
                 }
                 stages.add(new Stage(stage.getName(), tasks));
             }
@@ -223,19 +223,25 @@ public abstract class PipelineFactory {
     }
 
 
-    private static Task getTask(Task task, AbstractBuild build, AbstractBuild<?,?> firstBuild, ItemGroup context) {
+    private static Task getTask(Task task, AbstractBuild build, AbstractBuild<?, ?> firstBuild, ItemGroup context) {
         AbstractProject project = getProject(task, context);
         Status status = resolveStatus(project, build);
         String link = build == null || status.isIdle() || status.isQueued() ? task.getLink() : build.getUrl();
         String buildId = build == null || status.isIdle() || status.isQueued() ? null : String.valueOf(build.getNumber());
         ManualStep manualStep = null;
-        if (build == null && isManualTrigger(project)) {
-            AbstractProject<?,?> upstream = (AbstractProject<?,?>) project.getUpstreamProjects().get(0);
+        if (isManualTrigger(project)) {
+            AbstractProject<?, ?> upstream = (AbstractProject<?, ?>) project.getUpstreamProjects().get(0);
             AbstractBuild upstreamBuild = match(upstream.getBuilds(), firstBuild);
-            if (upstreamBuild != null && !upstreamBuild.isBuilding()) {
-                manualStep = new ManualStep(upstream.getName(), String.valueOf(upstreamBuild.getNumber()), true);
+            if (build == null) {
+                if (upstreamBuild != null && (!upstreamBuild.isBuilding())) {
+                    manualStep = new ManualStep(upstream.getName(), String.valueOf(upstreamBuild.getNumber()), true);
+                } else {
+                    manualStep = new ManualStep(upstream.getName(), null, false);
+                }
             } else {
-                manualStep = new ManualStep(upstream.getName(), null, false);
+                if (!build.isBuilding() && build.getResult().isWorseThan(Result.UNSTABLE)) {
+                    manualStep = new ManualStep(upstream.getName(), String.valueOf(upstreamBuild.getNumber()), true);
+                }
             }
         }
 
@@ -266,23 +272,23 @@ public abstract class PipelineFactory {
         List<Trigger> result = new ArrayList<Trigger>();
         List<Cause> causes = build.getCauses();
         for (Cause cause : causes) {
-           if(cause instanceof Cause.UserIdCause){
-               result.add(new Trigger(Trigger.TYPE_MANUAL, "user " + getDisplayName(((Cause.UserIdCause) cause).getUserName())));
-           } else if(cause instanceof Cause.RemoteCause){
-               result.add(new Trigger(Trigger.TYPE_REMOTE, "remote trigger"));
-           } else if(cause instanceof Cause.UpstreamCause){
-               //TODO add which project!
-               result.add(new Trigger(Trigger.TYPE_UPSTREAM, "upstream"));
-           } else if(cause instanceof SCMTrigger.SCMTriggerCause){
-               result.add(new Trigger(Trigger.TYPE_SCM, "SCM change"));
-           } else if(cause instanceof TimerTrigger.TimerTriggerCause){
-               result.add(new Trigger(Trigger.TYPE_TIMER, "timer"));
-           } else if(cause instanceof Cause.UpstreamCause.DeeplyNestedUpstreamCause){
-               //TODO add which project!
-               result.add(new Trigger(Trigger.TYPE_UPSTREAM, "upstream"));
-           } else {
-               result.add(new Trigger(Trigger.TYPE_UNKNOWN, "unknown cause"));
-           }
+            if (cause instanceof Cause.UserIdCause) {
+                result.add(new Trigger(Trigger.TYPE_MANUAL, "user " + getDisplayName(((Cause.UserIdCause) cause).getUserName())));
+            } else if (cause instanceof Cause.RemoteCause) {
+                result.add(new Trigger(Trigger.TYPE_REMOTE, "remote trigger"));
+            } else if (cause instanceof Cause.UpstreamCause) {
+                //TODO add which project!
+                result.add(new Trigger(Trigger.TYPE_UPSTREAM, "upstream"));
+            } else if (cause instanceof SCMTrigger.SCMTriggerCause) {
+                result.add(new Trigger(Trigger.TYPE_SCM, "SCM change"));
+            } else if (cause instanceof TimerTrigger.TimerTriggerCause) {
+                result.add(new Trigger(Trigger.TYPE_TIMER, "timer"));
+            } else if (cause instanceof Cause.UpstreamCause.DeeplyNestedUpstreamCause) {
+                //TODO add which project!
+                result.add(new Trigger(Trigger.TYPE_UPSTREAM, "upstream"));
+            } else {
+                result.add(new Trigger(Trigger.TYPE_UNKNOWN, "unknown cause"));
+            }
         }
         return result;
     }

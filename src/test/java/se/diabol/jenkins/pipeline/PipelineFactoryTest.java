@@ -792,4 +792,37 @@ public class PipelineFactoryTest {
 */
     }
 
+    @Test
+    public void testReTriggerFailedJob() throws Exception {
+        FreeStyleProject a = jenkins.createFreeStyleProject("a");
+        FreeStyleProject b = jenkins.createFreeStyleProject("b");
+        ManualTrigger trigger = new ManualTrigger("b");
+        a.getPublishersList().add(trigger);
+        jenkins.getInstance().rebuildDependencyGraph();
+
+        Pipeline prototype = PipelineFactory.extractPipeline("Test", a);
+        assertNotNull(prototype);
+
+
+        b.getBuildersList().add(new FailureBuilder());
+        //a.scheduleBuild2(0);
+        jenkins.buildAndAssertSuccess(a);
+        jenkins.waitUntilNoActivity();
+        assertNull(b.getLastBuild());
+
+        Pipeline pipeline = PipelineFactory.createPipelineLatest(prototype, Jenkins.getInstance());
+
+        assertTrue(pipeline.getStages().get(1).getTasks().get(0).isManual());
+        assertTrue(pipeline.getStages().get(1).getTasks().get(0).getManualStep().isEnabled());
+
+        trigger.trigger(a.getLastBuild(), b);
+        jenkins.waitUntilNoActivity();
+
+        pipeline = PipelineFactory.createPipelineLatest(prototype, Jenkins.getInstance());
+
+        assertTrue(pipeline.getStages().get(1).getTasks().get(0).isManual());
+        assertTrue(pipeline.getStages().get(1).getTasks().get(0).getManualStep().isEnabled());
+
+    }
+
 }

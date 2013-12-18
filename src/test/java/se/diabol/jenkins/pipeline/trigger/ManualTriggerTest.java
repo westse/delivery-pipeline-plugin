@@ -11,6 +11,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestBuilder;
+import org.jvnet.hudson.test.WithoutJenkins;
 import se.diabol.jenkins.pipeline.PipelineFactory;
 
 import java.io.IOException;
@@ -94,6 +95,15 @@ public class ManualTriggerTest {
         List<CauseAction> causeActions =  b.getLastBuild().getActions(CauseAction.class);
         assertEquals(2, causeActions.size());
 
+    }
+
+
+    @Test
+    @WithoutJenkins
+    public void testSettersAndGetters() {
+        ManualTrigger trigger = new ManualTrigger((List<ManualTriggerConfig>) null);
+        assertNull(trigger.getTriggerConfigs());
+        assertNull(trigger.getProject());
     }
 
 
