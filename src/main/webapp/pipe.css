@@ -213,6 +213,10 @@ div.task-manual {
     content:url("play.png");
 }
 
+div.pipeline-message {
+    font-size: 15px;
+}
+
 div.left {
     float: left;
 }
