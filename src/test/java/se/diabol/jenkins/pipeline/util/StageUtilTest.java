@@ -15,24 +15,16 @@ You should have received a copy of the GNU General Public License
 along with Delivery Pipeline Plugin.
 If not, see <http://www.gnu.org/licenses/>.
 */
-package se.diabol.jenkins.pipeline.model;
+package se.diabol.jenkins.pipeline.util;
 
 import org.junit.Test;
-import se.diabol.jenkins.pipeline.model.status.StatusFactory;
+import se.diabol.jenkins.pipeline.test.TestUtil;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-
-public class TaskTest {
+public class StageUtilTest {
 
     @Test
-    public void testEquals() {
-        Task a1 = new Task( "A", "unimportant_name", null, StatusFactory.idle(), "unimportant_link", null, null, null );
-        Task b = new Task( "B", "unimportant_name", null, StatusFactory.idle(), "unimportant_link", null, null, null );
-        Task a2 = new Task( "A", "unimportant_name", null, StatusFactory.idle(), "unimportant_link", null, null, null );
-
-        assertThat( a1, is( a1 ) );
-        assertThat( a1, is( a2 ) );
-        assertThat( a1.equals( b ), is( false ));
+    public void testValidUtilClass() throws Exception {
+        TestUtil.assertUtilityClassWellDefined(StageUtil.class);
     }
+
 }

@@ -28,6 +28,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class PipelineVersionContributor extends BuildWrapper {
 
@@ -35,6 +37,8 @@ public class PipelineVersionContributor extends BuildWrapper {
 
     private String versionTemplate;
     private boolean updateDisplayName = false;
+
+    private static final Logger LOG = Logger.getLogger(PipelineVersionContributor.class.getName());
 
     @DataBoundConstructor
     public PipelineVersionContributor(boolean updateDisplayName, String versionTemplate) {
@@ -51,17 +55,8 @@ public class PipelineVersionContributor extends BuildWrapper {
     }
 
     @Override
-    public Environment setUp(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
-        onStarted(build, listener);
-        return new Environment() {
-            @Override
-            public boolean tearDown(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
-                return true;
-            }
-        };
-    }
-
-    public void onStarted(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
+    public Environment setUp(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException,
+            InterruptedException {
         try {
 
             String version = TokenMacro.expand(build, listener, getVersionTemplate());
@@ -74,7 +69,14 @@ public class PipelineVersionContributor extends BuildWrapper {
 
         } catch (MacroEvaluationException e) {
             listener.getLogger().println("Error creating version: " + e.getMessage());
+            LOG.log(Level.WARNING, "Error creating version", e);
         }
+        return new Environment() {
+            @Override
+            public boolean tearDown(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
+                return true;
+            }
+        };
     }
 
     public static String getVersion(AbstractBuild build)  {

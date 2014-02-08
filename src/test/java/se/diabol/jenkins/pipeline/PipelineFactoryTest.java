@@ -26,11 +26,14 @@ import hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig;
 import hudson.plugins.parameterizedtrigger.BlockingBehaviour;
 import hudson.plugins.parameterizedtrigger.TriggerBuilder;
 import hudson.tasks.BuildTrigger;
+import hudson.tasks.Publisher;
 import hudson.tasks.test.AggregatedTestResultAction;
 import hudson.triggers.SCMTrigger;
 import hudson.triggers.TimerTrigger;
+import hudson.util.DescribableList;
 import hudson.util.OneShotEvent;
 import jenkins.model.Jenkins;
+import join.JoinTrigger;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,8 +41,9 @@ import org.jvnet.hudson.test.*;
 import org.mockito.runners.MockitoJUnitRunner;
 import se.diabol.jenkins.pipeline.model.*;
 import se.diabol.jenkins.pipeline.model.status.Running;
-import se.diabol.jenkins.pipeline.model.status.Status;
+import se.diabol.jenkins.pipeline.model.Status;
 import se.diabol.jenkins.pipeline.test.FakeRepositoryBrowserSCM;
+import se.diabol.jenkins.pipeline.test.TestUtil;
 import se.diabol.jenkins.pipeline.trigger.ManualTrigger;
 
 import java.io.IOException;
@@ -50,13 +54,20 @@ import java.util.Set;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
+import static java.util.Arrays.asList;
+import static se.diabol.jenkins.pipeline.model.status.StatusFactory.idle;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PipelineFactoryTest {
 
     @Rule
     public JenkinsRule jenkins = new JenkinsRule();
+
+    @Test
+    public void testValidUtilClass() throws Exception {
+        TestUtil.assertUtilityClassWellDefined(PipelineFactory.class);
+    }
+
 
 /*    @Test
     public void testExtractPipeline() throws Exception {
@@ -81,10 +92,10 @@ public class PipelineFactoryTest {
         Pipeline pipeline = PipelineFactory.extractPipeline("Piper", compile);
 
         assertEquals(pipeline,
-                new Pipeline("Piper", null, null, null, null, null,
-                        asList(new Stage("Build", asList(new Task("comp", "Compile", null, idle(), "", false, null))),
-                                new Stage("Test", asList(new Task("test", "Test", null, idle(), "", false, null))),
-                                new Stage("Deploy", asList(new Task("deploy", "Deploy", null, idle(), "", false, null)))), false));
+                new Pipeline("Piper", null, null, null, null,
+                        asList(new Stage("Build", asList(new Task("comp", "Compile", null, idle(), "", false, null, null)), null, null),
+                                new Stage("Test", asList(new Task("test", "Test", null, idle(), "", false, null, null)),null, null),
+                                new Stage("Deploy", asList(new Task("deploy", "Deploy", null, idle(), "", false, null, null)),null, null)), false));
 
 
     }*/
@@ -309,7 +320,7 @@ public class PipelineFactoryTest {
         jenkins.getInstance().rebuildDependencyGraph();
         jenkins.setQuietPeriod(0);
 
-        assertEquals(new Pipeline("Pipeline", null, null, null, null, null, asList(new Stage("Build", asList(new Task("build", "build", null, idle(), null,false, null)))), false), PipelineFactory.extractPipeline("Pipeline", build));
+        assertEquals(new Pipeline("Pipeline", null, null, null, null, asList(new Stage("Build", asList(new Task("build", "build", null, idle(), null,false, null, null)), null, null)), false), PipelineFactory.extractPipeline("Pipeline", build));
 
 
         build.getPublishersList().add(new BuildTrigger("sonar,deploy", false));
@@ -317,7 +328,7 @@ public class PipelineFactoryTest {
 
         Pipeline pipeline = PipelineFactory.extractPipeline("Pipeline", build);
 
-        assertEquals(new Pipeline("Pipeline", null, null, null, null, null, asList(new Stage("Build", asList(new Task("build", "build", null, idle(), null, false, null), new Task("sonar", "Sonar",null, idle(), null, false, null))), new Stage("CI", asList(new Task("deploy", "Deploy", null, idle(), null, false, null)))), false), pipeline);
+        assertEquals(new Pipeline("Pipeline", null, null, null, null, asList(new Stage("Build", asList(new Task("build", "build", null, idle(), null, false, null, null), new Task("sonar", "Sonar",null, idle(), null, false, null, null)), null, null), new Stage("CI", asList(new Task("deploy", "Deploy", null, idle(), null, false, null, null)), null, null)), false), pipeline);
         jenkins.buildAndAssertSuccess(build);
         jenkins.waitUntilNoActivity();
 
@@ -360,6 +371,7 @@ public class PipelineFactoryTest {
         upstream.getPublishersList().add(new BuildTrigger("build", false));
         build.getPublishersList().add(new BuildTrigger("package", false));
         jenkins.getInstance().rebuildDependencyGraph();
+        jenkins.setQuietPeriod(0);
         jenkins.buildAndAssertSuccess(upstream);
         jenkins.waitUntilNoActivity();
 
@@ -563,6 +575,7 @@ public class PipelineFactoryTest {
         FakeChangeLogSCM scm = new FakeChangeLogSCM();
         scm.addChange().withAuthor("test-user").withMsg("Fixed bug");
         project.setScm(scm);
+        jenkins.setQuietPeriod(0);
         jenkins.buildAndAssertSuccess(project);
         AbstractBuild build = project.getLastBuild();
         List<Change> changes = PipelineFactory.getChanges(build);
@@ -581,6 +594,7 @@ public class PipelineFactoryTest {
         FakeRepositoryBrowserSCM scm = new FakeRepositoryBrowserSCM();
         scm.addChange().withAuthor("test-user").withMsg("Fixed bug");
         project.setScm(scm);
+        jenkins.setQuietPeriod(0);
         jenkins.buildAndAssertSuccess(project);
         AbstractBuild build = project.getLastBuild();
         List<Change> changes = PipelineFactory.getChanges(build);
@@ -596,6 +610,7 @@ public class PipelineFactoryTest {
     @Test
     public void testGetTriggeredBy() throws Exception {
         FreeStyleProject project = jenkins.createFreeStyleProject("build");
+        jenkins.setQuietPeriod(0);
         project.scheduleBuild(new Cause.UserIdCause());
         jenkins.waitUntilNoActivity();
         Set<UserInfo> contributors = PipelineFactory.getContributors(project.getLastBuild());
@@ -611,6 +626,7 @@ public class PipelineFactoryTest {
         FakeRepositoryBrowserSCM scm = new FakeRepositoryBrowserSCM();
         scm.addChange().withAuthor("test-user").withMsg("Fixed bug");
         project.setScm(scm);
+        jenkins.setQuietPeriod(0);
         project.scheduleBuild(new Cause.UserIdCause());
         jenkins.waitUntilNoActivity();
         Set<UserInfo> contributors = PipelineFactory.getContributors(project.getLastBuild());
@@ -624,6 +640,7 @@ public class PipelineFactoryTest {
     @Test
     public void testGetTriggeredByWithNoUserIdCause() throws Exception {
         FreeStyleProject project = jenkins.createFreeStyleProject("build");
+        jenkins.setQuietPeriod(0);
         jenkins.buildAndAssertSuccess(project);
         Set<UserInfo> contributors = PipelineFactory.getContributors(project.getLastBuild());
         assertEquals(0, contributors.size());
@@ -637,6 +654,7 @@ public class PipelineFactoryTest {
         FreeStyleProject project = jenkins.createFreeStyleProject("build");
         FakeRepositoryBrowserSCM scm = new FakeRepositoryBrowserSCM();
         scm.addChange().withAuthor("test-user").withMsg("Fixed bug");
+        jenkins.setQuietPeriod(0);
         project.setScm(scm);
         project.scheduleBuild(new TimerTrigger.TimerTriggerCause());
         jenkins.waitUntilNoActivity();
@@ -651,6 +669,7 @@ public class PipelineFactoryTest {
         FakeRepositoryBrowserSCM scm = new FakeRepositoryBrowserSCM();
         scm.addChange().withAuthor("test-user").withMsg("Fixed bug");
         project.setScm(scm);
+        jenkins.setQuietPeriod(0);
         project.scheduleBuild(new SCMTrigger.SCMTriggerCause("SCM"));
         jenkins.waitUntilNoActivity();
         List<Trigger> triggeredBy = PipelineFactory.getTriggeredBy(project.getLastBuild());
@@ -659,8 +678,31 @@ public class PipelineFactoryTest {
     }
 
     @Test
+    public void testGetTriggeredByRemoteCause() throws Exception {
+        FreeStyleProject project = jenkins.createFreeStyleProject("build");
+        jenkins.setQuietPeriod(0);
+        project.scheduleBuild(new Cause.RemoteCause("localhost", "Remote"));
+        jenkins.waitUntilNoActivity();
+        List<Trigger> triggeredBy = PipelineFactory.getTriggeredBy(project.getLastBuild());
+        assertEquals(1, triggeredBy.size());
+        assertEquals(Trigger.TYPE_REMOTE, triggeredBy.iterator().next().getType());
+    }
+
+    @Test
+    public void testGetTriggeredByDeeplyNestedUpstreamCause() throws Exception {
+        FreeStyleProject project = jenkins.createFreeStyleProject("build");
+        jenkins.setQuietPeriod(0);
+        project.scheduleBuild(new Cause.UpstreamCause.DeeplyNestedUpstreamCause());
+        jenkins.waitUntilNoActivity();
+        List<Trigger> triggeredBy = PipelineFactory.getTriggeredBy(project.getLastBuild());
+        assertEquals(1, triggeredBy.size());
+        assertEquals(Trigger.TYPE_UPSTREAM, triggeredBy.iterator().next().getType());
+    }
+
+    @Test
     public void testGetTriggeredByUpStreamJob() throws Exception {
         FreeStyleProject upstream = jenkins.createFreeStyleProject("upstream");
+        jenkins.setQuietPeriod(0);
         jenkins.buildAndAssertSuccess(upstream);
         FreeStyleProject project = jenkins.createFreeStyleProject("build");
         FakeRepositoryBrowserSCM scm = new FakeRepositoryBrowserSCM();
@@ -681,6 +723,7 @@ public class PipelineFactoryTest {
         scm.addChange().withAuthor("test-user-fail").withMsg("Fixed bug");
         scm.addChange().withAuthor("test-user-fail2").withMsg("Fixed bug");
         project.setScm(scm);
+        jenkins.setQuietPeriod(0);
         project.getBuildersList().add(new FailureBuilder());
         project.scheduleBuild2(0);
         jenkins.waitUntilNoActivity();
@@ -719,7 +762,7 @@ public class PipelineFactoryTest {
     }
 
     @Test
-    public void getPipelineLatestWithFolders() throws Exception {
+    public void getPipelineLatestWithDifferntFolders() throws Exception {
         MockFolder folder1 = jenkins.createFolder("folder1");
         MockFolder folder2 = jenkins.createFolder("folder2");
         FreeStyleProject job1 = folder1.createProject(FreeStyleProject.class, "job1");
@@ -727,6 +770,7 @@ public class PipelineFactoryTest {
 
         job1.getPublishersList().add(new BuildTrigger("folder2/job2", false));
         jenkins.getInstance().rebuildDependencyGraph();
+        jenkins.setQuietPeriod(0);
 
         Pipeline prototype = PipelineFactory.extractPipeline("Folders", job1);
 
@@ -743,7 +787,98 @@ public class PipelineFactoryTest {
         assertEquals(2, pipeline.getStages().size());
         assertEquals("folder1/job1", pipeline.getStages().get(0).getTasks().get(0).getId());
         assertEquals("folder2/job2", pipeline.getStages().get(1).getTasks().get(0).getId());
+        assertEquals(0, pipeline.getStages().get(0).getColumn());
+        assertEquals(1, pipeline.getStages().get(1).getColumn());
 
+    }
+
+    @Test
+    public void testForkJoin() throws Exception {
+        FreeStyleProject a = jenkins.createFreeStyleProject("A");
+        FreeStyleProject b = jenkins.createFreeStyleProject("B");
+        FreeStyleProject c = jenkins.createFreeStyleProject("C");
+        FreeStyleProject d = jenkins.createFreeStyleProject("D");
+        a.getPublishersList().add(new BuildTrigger("B,C", false));
+        b.getPublishersList().add(new BuildTrigger("D", false));
+        c.getPublishersList().add(new BuildTrigger("D", false));
+        d.getPublishersList().add(new JoinTrigger(new DescribableList<Publisher, Descriptor<Publisher>>(Saveable.NOOP), "", false));
+        jenkins.getInstance().rebuildDependencyGraph();
+        Pipeline prototype = PipelineFactory.extractPipeline("ForkJoin", a);
+        assertNotNull(prototype);
+        assertEquals(4, prototype.getStages().size());
+
+        assertEquals(0, prototype.getStages().get(0).getColumn());
+        assertEquals(0, prototype.getStages().get(0).getRow());
+        assertEquals(1, prototype.getStages().get(1).getColumn());
+        assertEquals(0, prototype.getStages().get(1).getRow());
+        assertEquals(2, prototype.getStages().get(2).getColumn());
+        assertEquals(0, prototype.getStages().get(2).getRow());
+        assertEquals(1, prototype.getStages().get(3).getColumn());
+        assertEquals(1, prototype.getStages().get(3).getRow());
+
+    }
+
+    @Test
+    public void getPipelineLatestWithSameFolders() throws Exception {
+        MockFolder folder1 = jenkins.createFolder("folder1");
+        FreeStyleProject job1 = folder1.createProject(FreeStyleProject.class, "job1");
+        FreeStyleProject job2 = folder1.createProject(FreeStyleProject.class, "job2");
+
+        job1.getPublishersList().add(new BuildTrigger("folder1/job2", false));
+        jenkins.getInstance().rebuildDependencyGraph();
+        jenkins.setQuietPeriod(0);
+
+        Pipeline prototype = PipelineFactory.extractPipeline("Folders", job1);
+
+        assertNotNull(prototype);
+
+        jenkins.buildAndAssertSuccess(job1);
+        jenkins.waitUntilNoActivity();
+
+        assertNotNull(job1.getLastBuild());
+        assertNotNull(job2.getLastBuild());
+
+        Pipeline pipeline = PipelineFactory.createPipelineLatest(prototype, folder1);
+        assertNotNull(pipeline);
+        assertEquals(2, pipeline.getStages().size());
+        assertEquals("folder1/job1", pipeline.getStages().get(0).getTasks().get(0).getId());
+        assertEquals("folder1/job2", pipeline.getStages().get(1).getTasks().get(0).getId());
+
+        assertTrue(pipeline.getStages().get(0).getTasks().get(0).getStatus().isSuccess());
+        assertTrue(pipeline.getStages().get(1).getTasks().get(0).getStatus().isSuccess());
+
+    }
+
+    @Test
+    public void getPipelineLatestWithNestedFolders() throws Exception {
+        MockFolder folder1 = jenkins.createFolder("folder1");
+        MockFolder folder2 = folder1.createProject(MockFolder.class, "subfolder");
+
+        FreeStyleProject job1 = folder2.createProject(FreeStyleProject.class, "job1");
+        FreeStyleProject job2 = folder1.createProject(FreeStyleProject.class, "job2");
+
+        job1.getPublishersList().add(new BuildTrigger("folder1/job2", false));
+        jenkins.getInstance().rebuildDependencyGraph();
+        jenkins.setQuietPeriod(0);
+
+        Pipeline prototype = PipelineFactory.extractPipeline("Folders", job1);
+
+        assertNotNull(prototype);
+
+        jenkins.buildAndAssertSuccess(job1);
+        jenkins.waitUntilNoActivity();
+
+        assertNotNull(job1.getLastBuild());
+        assertNotNull(job2.getLastBuild());
+
+        Pipeline pipeline = PipelineFactory.createPipelineLatest(prototype, folder1);
+        assertNotNull(pipeline);
+        assertEquals(2, pipeline.getStages().size());
+        assertEquals("folder1/subfolder/job1", pipeline.getStages().get(0).getTasks().get(0).getId());
+        assertEquals("folder1/job2", pipeline.getStages().get(1).getTasks().get(0).getId());
+
+        assertTrue(pipeline.getStages().get(0).getTasks().get(0).getStatus().isSuccess());
+        assertTrue(pipeline.getStages().get(1).getTasks().get(0).getStatus().isSuccess());
 
     }
 

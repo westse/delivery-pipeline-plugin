@@ -163,7 +163,7 @@ public class DeliveryPipelineView extends View {
     }
 
     public void setFullScreenCss(String fullScreenCss) {
-        if (fullScreenCss != null && fullScreenCss.trim().equals("")) {
+        if (fullScreenCss != null && "".equals(fullScreenCss.trim())) {
             this.fullScreenCss = null;
         } else {
             this.fullScreenCss = fullScreenCss;
@@ -175,7 +175,7 @@ public class DeliveryPipelineView extends View {
     }
 
     public void setEmbeddedCss(String embeddedCss) {
-        if (embeddedCss != null && embeddedCss.trim().equals("")) {
+        if (embeddedCss != null && "".equals(embeddedCss.trim())) {
             this.embeddedCss = null;
         } else {
             this.embeddedCss = embeddedCss;
@@ -332,7 +332,7 @@ public class DeliveryPipelineView extends View {
             try {
                 valueAsInt = Integer.parseInt(value);
             } catch (NumberFormatException e) {
-                return FormValidation.error("Value must be a integer");
+                return FormValidation.error(e, "Value must be a integer");
             }
             if (valueAsInt <= 0) {
                 return FormValidation.error("Value must be greater that 0");
@@ -377,7 +377,7 @@ public class DeliveryPipelineView extends View {
                             return FormValidation.error("No capture group defined");
                         }
                     } catch (PatternSyntaxException e) {
-                        return FormValidation.error("Syntax error in regular-expression pattern");
+                        return FormValidation.error(e, "Syntax error in regular-expression pattern");
                     }
                 }
                 return FormValidation.ok();
@@ -424,7 +424,7 @@ public class DeliveryPipelineView extends View {
             }
 
             public FormValidation doCheckName(@QueryParameter String value) {
-                if (value != null && !value.trim().equals("")) {
+                if (value != null && !"".equals(value.trim())) {
                     return FormValidation.ok();
                 } else {
                     return FormValidation.error("Please supply a title!");

@@ -18,6 +18,7 @@ If not, see <http://www.gnu.org/licenses/>.
 package se.diabol.jenkins.pipeline;
 
 import hudson.ExtensionList;
+import hudson.Util;
 import hudson.model.*;
 import hudson.scm.ChangeLogSet;
 import hudson.scm.RepositoryBrowser;
@@ -30,15 +31,18 @@ import hudson.util.DescribableList;
 import hudson.util.RunList;
 import jenkins.model.Jenkins;
 import se.diabol.jenkins.pipeline.model.*;
-import se.diabol.jenkins.pipeline.model.status.Status;
+import se.diabol.jenkins.pipeline.model.Status;
 import se.diabol.jenkins.pipeline.model.status.StatusFactory;
 import se.diabol.jenkins.pipeline.trigger.ManualTrigger;
 import se.diabol.jenkins.pipeline.util.PipelineUtils;
 import se.diabol.jenkins.pipeline.util.ProjectUtil;
+import se.diabol.jenkins.pipeline.util.StageUtil;
 
 import java.io.IOException;
 import java.net.URL;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Iterables.concat;
@@ -51,9 +55,14 @@ import static java.util.Collections.singleton;
 import static se.diabol.jenkins.pipeline.model.status.StatusFactory.disabled;
 import static se.diabol.jenkins.pipeline.model.status.StatusFactory.idle;
 
-public abstract class PipelineFactory {
+public final class PipelineFactory {
 
     private static final int AVATAR_SIZE = 16;
+
+    private static final Logger LOG = Logger.getLogger(PipelineFactory.class.getName());
+
+    private PipelineFactory() {
+    }
 
     /**
      * Created a pipeline prototype for the supplied first project
@@ -67,25 +76,36 @@ public abstract class PipelineFactory {
                     ? property.getStageName() : project.getDisplayName();
             Stage stage = stages.get(stageName);
             if (stage == null) {
-                stage = new Stage(stageName, Collections.<Task>emptyList());
+                stage = new Stage(stageName, Collections.<Task>emptyList(), null, null);
             }
             stages.put(stageName,
-                    new Stage(stage.getName(), newArrayList(concat(stage.getTasks(), singleton(task)))));
+                    new Stage(stage.getName(), newArrayList(concat(stage.getTasks(), singleton(task))), null, null));
         }
+        Collection<Stage> stagesResult = stages.values();
 
-        return new Pipeline(name, null, null, null, null, null, newArrayList(stages.values()), false);
+        stagesResult = StageUtil.placeStages(firstProject, stagesResult);
+
+        return new Pipeline(name, null, null, null, null, newArrayList(stagesResult), false);
     }
+
 
     private static Task getPrototypeTask(AbstractProject project) {
         PipelineProperty property = (PipelineProperty) project.getProperty(PipelineProperty.class);
         String taskName = property != null && !isNullOrEmpty(property.getTaskName())
                 ? property.getTaskName() : project.getDisplayName();
         Status status = project.isDisabled() ? disabled() : idle();
+        List<AbstractProject> downstreams = ProjectUtil.getDownstreamProjects(project);
+        List<String> downStreamTasks = new ArrayList<String>();
+        for (AbstractProject downstreamProject : downstreams) {
+            downStreamTasks.add(downstreamProject.getRelativeNameFrom(Jenkins.getInstance()));
+        }
+
+//        return new Task(project.getRelativeNameFrom(Jenkins.getInstance()), taskName, null, status, Util.fixNull(Jenkins.getInstance().getRootUrl()) + project.getUrl(), false, null, downStreamTasks);
         ManualStep manualStep = null;
         if (isManualTrigger(project)) {
             manualStep = new ManualStep(project.getName(), null, false);
         }
-        return new Task(project.getRelativeNameFrom(Jenkins.getInstance()), taskName, null, status, project.getUrl(), manualStep, null);
+        return new Task(project.getRelativeNameFrom(Jenkins.getInstance()), taskName, null, status, project.getUrl(), manualStep, null, downStreamTasks);
     }
 
     public static boolean isManualTrigger(AbstractProject<?, ?> project) {
@@ -114,7 +134,7 @@ public abstract class PipelineFactory {
 
     public static Pipeline createPipelineLatest(Pipeline pipeline, ItemGroup context) {
         List<Pipeline> pipelines = createPipelineLatest(pipeline, 1, context);
-        return pipelines.size() > 0 ? pipelines.get(0) : null;
+        return !pipelines.isEmpty() ? pipelines.get(0) : null;
     }
 
     public static Pipeline createPipelineAggregated(Pipeline pipeline, ItemGroup context) {
@@ -138,15 +158,15 @@ public abstract class PipelineFactory {
 
                 if (currentBuild != null) {
                     Status status = resolveStatus(taskProject, currentBuild);
-                    String link = status.isIdle() ? task.getLink() : currentBuild.getUrl();
-                    tasks.add(new Task(task.getId(), task.getName(), String.valueOf(currentBuild.getNumber()), status, link, null, getTestResult(currentBuild)));
+                    String link = status.isIdle() ? task.getLink() : Util.fixNull(Jenkins.getInstance().getRootUrl()) + currentBuild.getUrl();
+                    tasks.add(new Task(task.getId(), task.getName(), String.valueOf(currentBuild.getNumber()), status, link, task.getManualStep(), getTestResult(currentBuild), task.getDownstreamTasks()));
                 } else {
-                    tasks.add(new Task(task.getId(), task.getName(), null, StatusFactory.idle(), task.getLink(), null, null));
+                    tasks.add(new Task(task.getId(), task.getName(), null, StatusFactory.idle(), task.getLink(), task.getManualStep(), null, task.getDownstreamTasks()));
                 }
             }
-            stages.add(new Stage(stage.getName(), tasks, version));
+            stages.add(new Stage(stage.getName(), tasks, stage.getDownstreamStages(), stage.getTaskConnections(), version, stage.getRow(), stage.getColumn()));
         }
-        return new Pipeline(pipeline.getName(), null, null, null, null, null, stages, true);
+        return new Pipeline(pipeline.getName(), null, null, null, null, stages, true);
     }
 
     private static AbstractBuild getHighestBuild(List<Task> tasks, AbstractProject firstProject, ItemGroup context) {
@@ -192,11 +212,12 @@ public abstract class PipelineFactory {
                     AbstractBuild currentBuild = match(taskProject.getBuilds(), firstBuild);
                     tasks.add(getTask(task, currentBuild, firstBuild, context));
                 }
-                stages.add(new Stage(stage.getName(), tasks));
+                stages.add(new Stage(stage.getName(), tasks, stage.getDownstreamStages(), stage.getTaskConnections(), null, stage.getRow(), stage.getColumn()));
             }
-
-            result.add(new Pipeline(pipeline.getName(), firstBuild.getDisplayName(), changes, timestamp,
-                    getTriggeredBy(firstBuild), getContributors(firstBuild), stages, false));
+            Pipeline pipelineLatest = new Pipeline(pipeline.getName(), firstBuild.getDisplayName(), timestamp,
+                                getTriggeredBy(firstBuild), getContributors(firstBuild), stages, false);
+            pipelineLatest.setChanges(changes);
+            result.add(pipelineLatest);
         }
         return result;
     }
@@ -214,7 +235,7 @@ public abstract class PipelineFactory {
                         changeLink = link.toExternalForm();
                     }
                 } catch (IOException e) {
-                    //Ignore
+                   LOG.log(Level.WARNING, "Could not get changeset link", e);
                 }
             }
             result.add(new Change(user, entry.getMsg(), entry.getCommitId(), changeLink));
@@ -226,7 +247,7 @@ public abstract class PipelineFactory {
     private static Task getTask(Task task, AbstractBuild build, AbstractBuild<?, ?> firstBuild, ItemGroup context) {
         AbstractProject project = getProject(task, context);
         Status status = resolveStatus(project, build);
-        String link = build == null || status.isIdle() || status.isQueued() ? task.getLink() : build.getUrl();
+        String link = build == null || status.isIdle() || status.isQueued() ? task.getLink() : Util.fixNull(Jenkins.getInstance().getRootUrl()) + build.getUrl();
         String buildId = build == null || status.isIdle() || status.isQueued() ? null : String.valueOf(build.getNumber());
         ManualStep manualStep = null;
         if (isManualTrigger(project)) {
@@ -245,7 +266,7 @@ public abstract class PipelineFactory {
             }
         }
 
-        return new Task(task.getId(), task.getName(), buildId, status, link, manualStep, getTestResult(build));
+        return new Task(task.getId(), task.getName(), buildId, status, link, manualStep, getTestResult(build), task.getDownstreamTasks());
     }
 
 
@@ -272,23 +293,20 @@ public abstract class PipelineFactory {
         List<Trigger> result = new ArrayList<Trigger>();
         List<Cause> causes = build.getCauses();
         for (Cause cause : causes) {
-            if (cause instanceof Cause.UserIdCause) {
-                result.add(new Trigger(Trigger.TYPE_MANUAL, "user " + getDisplayName(((Cause.UserIdCause) cause).getUserName())));
-            } else if (cause instanceof Cause.RemoteCause) {
-                result.add(new Trigger(Trigger.TYPE_REMOTE, "remote trigger"));
-            } else if (cause instanceof Cause.UpstreamCause) {
-                //TODO add which project!
-                result.add(new Trigger(Trigger.TYPE_UPSTREAM, "upstream"));
-            } else if (cause instanceof SCMTrigger.SCMTriggerCause) {
-                result.add(new Trigger(Trigger.TYPE_SCM, "SCM change"));
-            } else if (cause instanceof TimerTrigger.TimerTriggerCause) {
-                result.add(new Trigger(Trigger.TYPE_TIMER, "timer"));
-            } else if (cause instanceof Cause.UpstreamCause.DeeplyNestedUpstreamCause) {
-                //TODO add which project!
-                result.add(new Trigger(Trigger.TYPE_UPSTREAM, "upstream"));
-            } else {
-                result.add(new Trigger(Trigger.TYPE_UNKNOWN, "unknown cause"));
-            }
+           if(cause instanceof Cause.UserIdCause){
+               result.add(new Trigger(Trigger.TYPE_MANUAL, "user " + getDisplayName(((Cause.UserIdCause) cause).getUserName())));
+           } else if(cause instanceof Cause.RemoteCause){
+               result.add(new Trigger(Trigger.TYPE_REMOTE, "remote trigger"));
+           } else if(cause instanceof Cause.UpstreamCause || cause instanceof Cause.UpstreamCause.DeeplyNestedUpstreamCause){
+               //TODO add which project!
+               result.add(new Trigger(Trigger.TYPE_UPSTREAM, "upstream"));
+           } else if(cause instanceof SCMTrigger.SCMTriggerCause){
+               result.add(new Trigger(Trigger.TYPE_SCM, "SCM change"));
+           } else if(cause instanceof TimerTrigger.TimerTriggerCause){
+               result.add(new Trigger(Trigger.TYPE_TIMER, "timer"));
+           } else {
+               result.add(new Trigger(Trigger.TYPE_UNKNOWN, "unknown cause"));
+           }
         }
         return result;
     }
@@ -406,22 +424,19 @@ public abstract class PipelineFactory {
     public static AbstractBuild getUpstreamBuild(AbstractBuild build) {
         List<CauseAction> actions = build.getActions(CauseAction.class);
         for (CauseAction action : actions) {
-            List<Cause> causes = action.getCauses();
-            for (Cause cause : causes) {
-                if (cause instanceof Cause.UpstreamCause) {
-                    Cause.UpstreamCause upstreamCause = (Cause.UpstreamCause) cause;
-                    AbstractProject upstreamProject = (AbstractProject) Jenkins.getInstance().getItemMap().get(upstreamCause.getUpstreamProject());
-                    //Due to https://issues.jenkins-ci.org/browse/JENKINS-14030 when a project has been renamed triggers are not updated correctly
-                    if (upstreamProject == null) {
-                        return null;
-                    }
-                    return upstreamProject.getBuildByNumber(upstreamCause.getUpstreamBuild());
+            List<Cause.UpstreamCause> causes = Util.filter(action.getCauses(), Cause.UpstreamCause.class);
+
+            for (Cause.UpstreamCause upstreamCause : causes) {
+                AbstractProject upstreamProject = ProjectUtil.getProject(upstreamCause.getUpstreamProject());
+                //Due to https://issues.jenkins-ci.org/browse/JENKINS-14030 when a project has been renamed triggers are not updated correctly
+                if (upstreamProject == null) {
+                    return null;
                 }
+                return upstreamProject.getBuildByNumber(upstreamCause.getUpstreamBuild());
             }
         }
         return null;
 
     }
-
 
 }

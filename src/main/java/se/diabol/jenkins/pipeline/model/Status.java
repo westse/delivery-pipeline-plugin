@@ -17,22 +17,29 @@ If not, see <http://www.gnu.org/licenses/>.
 */
 package se.diabol.jenkins.pipeline.model;
 
-import org.junit.Test;
-import se.diabol.jenkins.pipeline.model.status.StatusFactory;
+import org.kohsuke.stapler.export.ExportedBean;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+@ExportedBean
+public interface Status {
+    boolean isIdle();
 
-public class TaskTest {
+    boolean isQueued();
 
-    @Test
-    public void testEquals() {
-        Task a1 = new Task( "A", "unimportant_name", null, StatusFactory.idle(), "unimportant_link", null, null, null );
-        Task b = new Task( "B", "unimportant_name", null, StatusFactory.idle(), "unimportant_link", null, null, null );
-        Task a2 = new Task( "A", "unimportant_name", null, StatusFactory.idle(), "unimportant_link", null, null, null );
+    boolean isRunning();
 
-        assertThat( a1, is( a1 ) );
-        assertThat( a1, is( a2 ) );
-        assertThat( a1.equals( b ), is( false ));
-    }
+    boolean isSuccess();
+
+    boolean isFailed();
+
+    boolean isUnstable();
+
+    boolean isCancelled();
+
+    boolean isDisabled();
+
+    long getLastActivity();
+
+    String getTimestamp();
+
+    long getDuration();
 }

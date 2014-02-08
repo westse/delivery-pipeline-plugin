@@ -15,31 +15,24 @@ You should have received a copy of the GNU General Public License
 along with Delivery Pipeline Plugin.
 If not, see <http://www.gnu.org/licenses/>.
 */
-package se.diabol.jenkins.pipeline.model.status;
+package se.diabol.jenkins.pipeline.model;
 
-import org.kohsuke.stapler.export.ExportedBean;
+public class Edge {
 
-@ExportedBean
-public interface Status {
-    boolean isIdle();
+    private Stage source;
+    private Stage target;
 
-    boolean isQueued();
+    public Edge(Stage source, Stage target) {
+        this.source = source;
+        this.target = target;
+    }
 
-    boolean isRunning();
+    public Stage getSource() {
+        return source;
+    }
 
-    boolean isSuccess();
+    public Stage getTarget() {
+        return target;
+    }
 
-    boolean isFailed();
-
-    boolean isUnstable();
-
-    boolean isCancelled();
-
-    boolean isDisabled();
-
-    long getLastActivity();
-
-    String getTimestamp();
-
-    long getDuration();
 }

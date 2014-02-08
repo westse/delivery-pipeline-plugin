@@ -21,7 +21,10 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public abstract class PipelineUtils {
+public final class PipelineUtils {
+
+    private PipelineUtils() {
+    }
 
     public static String formatTimestamp(long timestamp) {
         DateFormat f = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");

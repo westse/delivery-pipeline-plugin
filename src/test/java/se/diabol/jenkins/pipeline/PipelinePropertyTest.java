@@ -29,7 +29,6 @@ import org.jvnet.hudson.test.WithoutJenkins;
 import org.kohsuke.stapler.StaplerRequest;
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
-import se.diabol.jenkins.pipeline.util.ProjectUtil;
 
 import java.util.Set;
 
@@ -84,6 +83,30 @@ public class PipelinePropertyTest {
 
     @Test
     @WithoutJenkins
+    public void testNewInstanceNull() throws Exception {
+        PipelineProperty.DescriptorImpl d = new PipelineProperty.DescriptorImpl();
+        StaplerRequest request = Mockito.mock(StaplerRequest.class);
+        when(request.getParameter("taskName")).thenReturn(null);
+        when(request.getParameter("stageName")).thenReturn(null);
+        assertNull(d.newInstance(request, null));
+    }
+
+    @Test
+    @WithoutJenkins
+    public void testNewInstanceTaskNull() throws Exception {
+        PipelineProperty.DescriptorImpl d = new PipelineProperty.DescriptorImpl();
+        StaplerRequest request = Mockito.mock(StaplerRequest.class);
+        when(request.getParameter("taskName")).thenReturn(null);
+        when(request.getParameter("stageName")).thenReturn("Stage");
+        PipelineProperty p = d.newInstance(request, null);
+        assertNotNull(p);
+        assertNull(p.getTaskName());
+        assertEquals("Stage", p.getStageName());
+    }
+
+
+    @Test
+    @WithoutJenkins
     public void testNewInstanceBothSet() throws Exception {
         PipelineProperty.DescriptorImpl d = new PipelineProperty.DescriptorImpl();
         StaplerRequest request = Mockito.mock(StaplerRequest.class);
@@ -108,7 +131,7 @@ public class PipelinePropertyTest {
         assertEquals(c2.getValues().size(), 0);
 
         AutoCompletionCandidates c3 = d.doAutoCompleteStageName(null);
-        assertEquals(c2.getValues().size(), 0);
+        assertEquals(c3.getValues().size(), 0);
 
 
     }

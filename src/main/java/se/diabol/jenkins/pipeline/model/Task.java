@@ -21,7 +21,8 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
-import se.diabol.jenkins.pipeline.model.status.Status;
+
+import java.util.List;
 
 import static com.google.common.base.Objects.toStringHelper;
 
@@ -33,9 +34,10 @@ public class Task extends AbstractItem {
     private final Status status;
     private final ManualStep manual;
     private final String buildId;
+    private final List<String> downstreamTasks;
 
     public Task(String id, String name, String buildId, Status status, String link, ManualStep manual,
-                TestResult testResult) {
+                TestResult testResult, List<String> downstreamTasks) {
         super(name);
         this.id = id;
         this.link = link;
@@ -43,6 +45,7 @@ public class Task extends AbstractItem {
         this.status = status;
         this.manual = manual;
         this.buildId = buildId;
+        this.downstreamTasks = downstreamTasks;
     }
 
     @Exported
@@ -80,6 +83,11 @@ public class Task extends AbstractItem {
     @Exported
     public Status getStatus() {
         return status;
+    }
+
+    @Exported
+    public List<String> getDownstreamTasks() {
+        return downstreamTasks;
     }
 
     @Override

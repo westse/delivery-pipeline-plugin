@@ -103,6 +103,25 @@ public class DeliveryPipelineViewTest {
     }
 
     @Test
+    @WithoutJenkins
+    public void testCssUrl() {
+        DeliveryPipelineView view = new DeliveryPipelineView("name");
+        view.setEmbeddedCss("");
+        view.setFullScreenCss("");
+        assertNull(view.getEmbeddedCss());
+        assertNull(view.getFullScreenCss());
+    }
+
+    @Test
+    @WithoutJenkins
+    public void testOldSorter() {
+        DeliveryPipelineView view = new DeliveryPipelineView("name");
+        view.setSorting("se.diabol.jenkins.pipeline.sort.NoOpComparator");
+        assertEquals("none", view.getSorting());
+    }
+
+
+    @Test
     public void testGetItemsAndContains() throws Exception {
         FreeStyleProject build = jenkins.createFreeStyleProject("build");
         FreeStyleProject sonar = jenkins.createFreeStyleProject("sonar");
@@ -176,6 +195,7 @@ public class DeliveryPipelineViewTest {
         assertEquals(0, component.getPipelines().size());
         assertEquals("Comp", component.getName());
 
+        jenkins.setQuietPeriod(0);
         jenkins.buildAndAssertSuccess(build);
 
         components = view.getPipelines();
@@ -241,6 +261,7 @@ public class DeliveryPipelineViewTest {
         DeliveryPipelineView.ComponentSpec.DescriptorImpl d = new DeliveryPipelineView.ComponentSpec.DescriptorImpl();
         assertEquals(FormValidation.Kind.ERROR,  d.doCheckName(null).kind);
         assertEquals(FormValidation.Kind.ERROR,  d.doCheckName("").kind);
+        assertEquals(FormValidation.Kind.ERROR,  d.doCheckName(" ").kind);
         assertEquals(FormValidation.Kind.OK,  d.doCheckName("Component").kind);
 
 

@@ -111,10 +111,10 @@ public class PipelineProperty extends JobProperty<AbstractProject<?, ?>> {
         }
 
         protected FormValidation checkValue(String value) {
-            if (value == null || value.equals("")) {
+            if (value == null || "".equals(value)) {
                 return FormValidation.ok();
             }
-            if (value.trim().equals("")) {
+            if ("".equals(value.trim())) {
                 return FormValidation.error("Value needs to be empty or include characters and/or numbers");
             }
             return FormValidation.ok();
@@ -124,19 +124,19 @@ public class PipelineProperty extends JobProperty<AbstractProject<?, ?>> {
 
         @Override
         public PipelineProperty newInstance(StaplerRequest sr, JSONObject formData) throws FormException {
-            String taskName = sr.getParameter("taskName");
-            String stageName = sr.getParameter("stageName");
-            if (taskName != null && taskName.equals("")) {
-                taskName = null;
+            String task = sr.getParameter("taskName");
+            String stage = sr.getParameter("stageName");
+            if ("".equals(task)) {
+                task = null;
             }
-            if (stageName != null && stageName.equals("")) {
-                stageName = null;
+            if ("".equals(stage)) {
+                stage = null;
             }
-            if (taskName == null && stageName == null) {
+            if (task == null && stage == null) {
                 return null;
             }
-            return new PipelineProperty(taskName,
-                    stageName);
+            return new PipelineProperty(task,
+                    stage);
         }
     }
 }
