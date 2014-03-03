@@ -85,15 +85,16 @@ section.stage {
     border-radius: 10px;
     border: solid 2px black;
     padding: 0 3px 3px 0;
-    margin: 0 30px 60px;
+    margin: 0 30px 0px;
 }
 
-section.stage h1 {
+section.stage div.stage-header {
     font-size: medium;
     border-bottom: black solid 2px;
     margin: 0;
     margin-bottom: 3px;
     padding: 5px 10px;
+    height: 20px;
 }
 
 section.stage div.task {
@@ -119,6 +120,11 @@ section.stage a:hover {
 .stage-version {
     float: right;
 }
+
+.stage-name {
+    float: left;
+}
+
 
 .IDLE {
     border-left: 6px solid #d3d3d3;
@@ -200,7 +206,10 @@ section.hide {
 div.pipeline-row {
     display: table-row;
     white-space: nowrap;
-    margin-top: 20px;
+}
+div.pipeline-row-spacer {
+    white-space: nowrap;
+    height: 20px;
 }
 
 div.pipelineerror {
