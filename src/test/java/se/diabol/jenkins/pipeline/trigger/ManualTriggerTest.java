@@ -103,7 +103,7 @@ public class ManualTriggerTest {
     public void testSettersAndGetters() {
         ManualTrigger trigger = new ManualTrigger((List<ManualTriggerConfig>) null);
         assertNull(trigger.getTriggerConfigs());
-        assertNull(trigger.getProject());
+        assertTrue(trigger.getProjects().isEmpty());
     }
 
 

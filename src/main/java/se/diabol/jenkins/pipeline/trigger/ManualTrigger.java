@@ -24,6 +24,7 @@ import hudson.plugins.parameterizedtrigger.ResultCondition;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Publisher;
 import hudson.util.DescribableList;
+import jenkins.model.Jenkins;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.IOException;
@@ -46,18 +47,21 @@ public class ManualTrigger extends BuildTrigger {
         triggerConfigs.add(config);
     }
 
-    public AbstractProject getProject() {
-        if (triggerConfigs != null && triggerConfigs.size() == 1) {
-            return triggerConfigs.get(0).getProject();
+    public List<AbstractProject> getProjects() {
+        List<AbstractProject> result = new ArrayList<AbstractProject>();
+        if (triggerConfigs != null) {
+            for (ManualTriggerConfig config : triggerConfigs) {
+                result.addAll(config.getProjectList(Jenkins.getInstance(), null));
+            }
         }
-        return null;
+        return result;
     }
 
     public void trigger(AbstractBuild upstreamBuild, AbstractProject downstream) {
         try {
             for (ManualTriggerConfig manualTriggerConfig : triggerConfigs) {
                 if (manualTriggerConfig.getProject().equals(downstream)) {
-                     manualTriggerConfig.perform(upstreamBuild, null, new StreamBuildListener(System.out, Charset.defaultCharset()));
+                    manualTriggerConfig.perform(upstreamBuild, null, new StreamBuildListener(System.out, Charset.defaultCharset()));
 
                 }
             }
@@ -78,10 +82,13 @@ public class ManualTrigger extends BuildTrigger {
         DescribableList<Publisher, Descriptor<Publisher>> upstreamPublishersLists = project.getPublishersList();
         for (Publisher upstreamPub : upstreamPublishersLists) {
             if (upstreamPub instanceof ManualTrigger) {
-                AbstractProject downstreamProject = ((ManualTrigger) upstreamPub).getProject();
-                if (downstream.equals(downstreamProject)) {
-                    return (ManualTrigger) upstreamPub;
+                List<AbstractProject> downstreamProjects = ((ManualTrigger) upstreamPub).getProjects();
+                for (AbstractProject downstreamProject : downstreamProjects) {
+                    if (downstream.equals(downstreamProject)) {
+                        return (ManualTrigger) upstreamPub;
+                    }
                 }
+
             }
         }
         return null;

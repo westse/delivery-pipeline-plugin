@@ -115,9 +115,12 @@ public final class PipelineFactory {
             DescribableList<Publisher, Descriptor<Publisher>> upstreamPublishersLists = upstreamProject.getPublishersList();
             for (Publisher upstreamPub : upstreamPublishersLists) {
                 if (upstreamPub instanceof ManualTrigger) {
-                    AbstractProject downstreamProject = ((ManualTrigger) upstreamPub).getProject();
-                    if (project.equals(downstreamProject)) {
-                        return true;
+                    List<AbstractProject> downstreamProjects = ((ManualTrigger) upstreamPub).getProjects();
+                    for (int i = 0; i < downstreamProjects.size(); i++) {
+                        AbstractProject downstreamProject = downstreamProjects.get(i);
+                        if (project.equals(downstreamProject)) {
+                            return true;
+                        }
                     }
                 }
             }

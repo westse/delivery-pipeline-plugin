@@ -20,10 +20,12 @@ package se.diabol.jenkins.pipeline;
 import au.com.centrumsystems.hudson.plugin.buildpipeline.BuildPipelineView;
 import au.com.centrumsystems.hudson.plugin.buildpipeline.DownstreamProjectGridBuilder;
 import au.com.centrumsystems.hudson.plugin.buildpipeline.trigger.BuildPipelineTrigger;
+import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.*;
 import hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig;
 import hudson.plugins.parameterizedtrigger.BlockingBehaviour;
+import hudson.plugins.parameterizedtrigger.ResultCondition;
 import hudson.plugins.parameterizedtrigger.TriggerBuilder;
 import hudson.tasks.BuildTrigger;
 import hudson.tasks.Publisher;
@@ -45,8 +47,10 @@ import se.diabol.jenkins.pipeline.model.Status;
 import se.diabol.jenkins.pipeline.test.FakeRepositoryBrowserSCM;
 import se.diabol.jenkins.pipeline.test.TestUtil;
 import se.diabol.jenkins.pipeline.trigger.ManualTrigger;
+import se.diabol.jenkins.pipeline.trigger.ManualTriggerConfig;
 
 import java.io.IOException;
+import java.nio.channels.Pipe;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -960,5 +964,44 @@ public class PipelineFactoryTest {
         assertTrue(pipeline.getStages().get(1).getTasks().get(0).getManualStep().isEnabled());
 
     }
+
+    @Test
+    public void testIsManualTriggeredTwoUpstream() throws Exception {
+        FreeStyleProject a = jenkins.createFreeStyleProject("a");
+        FreeStyleProject b = jenkins.createFreeStyleProject("b");
+        FreeStyleProject c = jenkins.createFreeStyleProject("c");
+
+        List<ManualTriggerConfig> configs = new ArrayList<ManualTriggerConfig>();
+        configs.add(new ManualTriggerConfig("b", ResultCondition.SUCCESS, true, null));
+        configs.add(new ManualTriggerConfig("c", ResultCondition.SUCCESS, true, null));
+
+        ManualTrigger trigger = new ManualTrigger(configs);
+
+        a.getPublishersList().add(trigger);
+
+        jenkins.getInstance().rebuildDependencyGraph();
+
+        jenkins.buildAndAssertSuccess(a);
+        jenkins.waitUntilNoActivity();
+        assertNotNull(a.getLastBuild());
+        assertNull(b.getLastBuild());
+        assertNull(c.getLastBuild());
+
+        assertTrue(PipelineFactory.isManualTrigger(b));
+        assertTrue(PipelineFactory.isManualTrigger(c));
+
+        Pipeline prototype = PipelineFactory.extractPipeline("Component", a);
+        Pipeline pipeline = PipelineFactory.createPipelineLatest(prototype, Jenkins.getInstance());
+        assertFalse(pipeline.getStages().get(0).getTasks().get(0).isManual());
+        assertTrue(pipeline.getStages().get(1).getTasks().get(0).isManual());
+        assertTrue(pipeline.getStages().get(1).getTasks().get(0).getManualStep().isEnabled());
+        assertTrue(pipeline.getStages().get(2).getTasks().get(0).isManual());
+        assertTrue(pipeline.getStages().get(2).getTasks().get(0).getManualStep().isEnabled());
+
+
+
+    }
+
+
 
 }
