@@ -19,10 +19,6 @@ package se.diabol.jenkins.pipeline.trigger;
 
 public class TriggerException extends Exception {
 
-    public TriggerException(String message) {
-        super(message);
-    }
-
     public TriggerException(String message, Throwable cause) {
         super(message, cause);
     }
