@@ -57,20 +57,13 @@ public class ManualTrigger extends BuildTrigger {
         return result;
     }
 
-    public void trigger(AbstractBuild upstreamBuild, AbstractProject downstream) {
-        try {
-            for (ManualTriggerConfig manualTriggerConfig : triggerConfigs) {
-                if (manualTriggerConfig.getProject().equals(downstream)) {
-                    manualTriggerConfig.perform(upstreamBuild, null, new StreamBuildListener(System.out, Charset.defaultCharset()));
+    public void trigger(AbstractBuild upstreamBuild, AbstractProject downstream) throws InterruptedException, IOException {
+        for (ManualTriggerConfig manualTriggerConfig : triggerConfigs) {
+            if (manualTriggerConfig.getProject().equals(downstream)) {
+                manualTriggerConfig.perform(upstreamBuild, null, new StreamBuildListener(System.out, Charset.defaultCharset()));
 
-                }
             }
-        } catch (InterruptedException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } catch (IOException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
-
     }
 
     public List<ManualTriggerConfig> getTriggerConfigs() {

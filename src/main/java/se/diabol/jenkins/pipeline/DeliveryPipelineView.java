@@ -36,6 +36,7 @@ import se.diabol.jenkins.pipeline.util.ProjectUtil;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -234,13 +235,16 @@ public class DeliveryPipelineView extends View {
 
     @JavaScriptMethod
     public void triggerManual(String projectName, String upstreamName, String buildId) {
-        LOG.fine("Trigger manual build " + projectName + " " + upstreamName + " " + buildId);
-        AbstractProject project = ProjectUtil.getProject(projectName, getOwnerItemGroup());
-        AbstractProject upstream = ProjectUtil.getProject(upstreamName, getOwnerItemGroup());
-        ManualTrigger trigger = ManualTrigger.getTrigger(upstream, project);
-        AbstractBuild upstreamBuild = upstream.getBuildByNumber(Integer.parseInt(buildId));
-        trigger.trigger(upstreamBuild, project);
-
+        try {
+            LOG.fine("Trigger manual build " + projectName + " " + upstreamName + " " + buildId);
+            AbstractProject project = ProjectUtil.getProject(projectName, getOwnerItemGroup());
+            AbstractProject upstream = ProjectUtil.getProject(upstreamName, getOwnerItemGroup());
+            ManualTrigger trigger = ManualTrigger.getTrigger(upstream, project);
+            AbstractBuild upstreamBuild = upstream.getBuildByNumber(Integer.parseInt(buildId));
+            trigger.trigger(upstreamBuild, project);
+        } catch (Exception e) {
+            LOG.log(Level.WARNING, "Could not trigger manual build " + projectName + " for upstream " +                    upstreamName + " id: " + buildId);
+        }
     }
 
     private Component getComponent(String name, AbstractProject firstJob, boolean showAggregatedPipeline) {
