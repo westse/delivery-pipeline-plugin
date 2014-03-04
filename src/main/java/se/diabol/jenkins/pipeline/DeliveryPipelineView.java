@@ -30,6 +30,8 @@ import se.diabol.jenkins.pipeline.model.Pipeline;
 import se.diabol.jenkins.pipeline.sort.ComponentComparator;
 import se.diabol.jenkins.pipeline.sort.ComponentComparatorDescriptor;
 import se.diabol.jenkins.pipeline.trigger.ManualTrigger;
+import se.diabol.jenkins.pipeline.trigger.Trigger;
+import se.diabol.jenkins.pipeline.trigger.TriggerFactory;
 import se.diabol.jenkins.pipeline.util.PipelineUtils;
 import se.diabol.jenkins.pipeline.util.ProjectUtil;
 
@@ -239,11 +241,16 @@ public class DeliveryPipelineView extends View {
             LOG.fine("Trigger manual build " + projectName + " " + upstreamName + " " + buildId);
             AbstractProject project = ProjectUtil.getProject(projectName, getOwnerItemGroup());
             AbstractProject upstream = ProjectUtil.getProject(upstreamName, getOwnerItemGroup());
-            ManualTrigger trigger = ManualTrigger.getTrigger(upstream, project);
-            AbstractBuild upstreamBuild = upstream.getBuildByNumber(Integer.parseInt(buildId));
-            trigger.trigger(upstreamBuild, project);
+            Trigger trigger = TriggerFactory.getTrigger(project, upstream);
+            if (trigger != null) {
+                trigger.triggerManual(projectName, upstreamName, buildId, getOwnerItemGroup());
+            } else {
+                LOG.log(Level.WARNING, "Trigger not found for manual build " + projectName + " for upstream " +
+                        upstreamName + " id: " + buildId);
+            }
         } catch (Exception e) {
-            LOG.log(Level.WARNING, "Could not trigger manual build " + projectName + " for upstream " +                    upstreamName + " id: " + buildId);
+            LOG.log(Level.WARNING, "Could not trigger manual build " + projectName + " for upstream " +
+                    upstreamName + " id: " + buildId, e);
         }
     }
 

@@ -26,13 +26,15 @@ import hudson.tasks.Publisher;
 import hudson.util.DescribableList;
 import jenkins.model.Jenkins;
 import org.kohsuke.stapler.DataBoundConstructor;
+import se.diabol.jenkins.pipeline.util.ProjectUtil;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 
-public class ManualTrigger extends BuildTrigger {
+public class ManualTrigger extends BuildTrigger implements Trigger {
 
     private List<ManualTriggerConfig> triggerConfigs;
 
@@ -64,6 +66,21 @@ public class ManualTrigger extends BuildTrigger {
 
             }
         }
+    }
+
+    @Override
+    public void triggerManual(String projectName, String upstreamName, String buildId,
+                              ItemGroup<? extends TopLevelItem> itemGroup) throws TriggerException {
+        try {
+            AbstractProject project = ProjectUtil.getProject(projectName, itemGroup);
+            AbstractProject upstream = ProjectUtil.getProject(upstreamName, itemGroup);
+            ManualTrigger trigger = ManualTrigger.getTrigger(upstream, project);
+            AbstractBuild upstreamBuild = upstream.getBuildByNumber(Integer.parseInt(buildId));
+            trigger.trigger(upstreamBuild, project);
+        } catch (Exception e) {
+            throw new TriggerException("Could not trigger", e);
+        }
+
     }
 
     public List<ManualTriggerConfig> getTriggerConfigs() {

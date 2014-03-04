@@ -17,6 +17,7 @@ If not, see <http://www.gnu.org/licenses/>.
 */
 package se.diabol.jenkins.pipeline;
 
+import au.com.centrumsystems.hudson.plugin.buildpipeline.trigger.BuildPipelineTrigger;
 import hudson.ExtensionList;
 import hudson.Util;
 import hudson.model.*;
@@ -116,11 +117,16 @@ public final class PipelineFactory {
             for (Publisher upstreamPub : upstreamPublishersLists) {
                 if (upstreamPub instanceof ManualTrigger) {
                     List<AbstractProject> downstreamProjects = ((ManualTrigger) upstreamPub).getProjects();
-                    for (int i = 0; i < downstreamProjects.size(); i++) {
-                        AbstractProject downstreamProject = downstreamProjects.get(i);
+                    for (AbstractProject downstreamProject : downstreamProjects) {
                         if (project.equals(downstreamProject)) {
                             return true;
                         }
+                    }
+                }
+                if (upstreamPub instanceof BuildPipelineTrigger) {
+                    String names = ((BuildPipelineTrigger) upstreamPub).getDownstreamProjectNames();
+                    if (ProjectUtil.getProjectList(names, Jenkins.getInstance(), null).contains(project)) {
+                        return true;
                     }
                 }
             }
