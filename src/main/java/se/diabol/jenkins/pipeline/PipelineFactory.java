@@ -104,7 +104,7 @@ public final class PipelineFactory {
 //        return new Task(project.getRelativeNameFrom(Jenkins.getInstance()), taskName, null, status, Util.fixNull(Jenkins.getInstance().getRootUrl()) + project.getUrl(), false, null, downStreamTasks);
         ManualStep manualStep = null;
         if (isManualTrigger(project)) {
-            manualStep = new ManualStep(project.getName(), null, false);
+            manualStep = new ManualStep(project.getName(), null, false, project.hasPermission(Item.BUILD));
         }
         return new Task(project.getRelativeNameFrom(Jenkins.getInstance()), taskName, null, status, project.getUrl(), manualStep, null, downStreamTasks);
     }
@@ -253,7 +253,7 @@ public final class PipelineFactory {
     }
 
 
-    private static Task getTask(Task task, AbstractBuild build, AbstractBuild<?, ?> firstBuild, ItemGroup context) {
+    protected static Task getTask(Task task, AbstractBuild build, AbstractBuild<?, ?> firstBuild, ItemGroup context) {
         AbstractProject project = getProject(task, context);
         Status status = resolveStatus(project, build);
         String link = build == null || status.isIdle() || status.isQueued() ? task.getLink() : Util.fixNull(Jenkins.getInstance().getRootUrl()) + build.getUrl();
@@ -264,13 +264,14 @@ public final class PipelineFactory {
             AbstractBuild upstreamBuild = match(upstream.getBuilds(), firstBuild);
             if (build == null) {
                 if (upstreamBuild != null && (!upstreamBuild.isBuilding())) {
-                    manualStep = new ManualStep(upstream.getName(), String.valueOf(upstreamBuild.getNumber()), true);
+                    manualStep = new ManualStep(upstream.getName(), String.valueOf(upstreamBuild.getNumber()), true, project.hasPermission(Item.BUILD));
                 } else {
-                    manualStep = new ManualStep(upstream.getName(), null, false);
+                    manualStep = new ManualStep(upstream.getName(), null, false, project.hasPermission(Item.BUILD));
                 }
             } else {
+                //TODO get this from configuration of trigger?
                 if (!build.isBuilding() && build.getResult().isWorseThan(Result.UNSTABLE)) {
-                    manualStep = new ManualStep(upstream.getName(), String.valueOf(upstreamBuild.getNumber()), true);
+                    manualStep = new ManualStep(upstream.getName(), String.valueOf(upstreamBuild.getNumber()), true, project.hasPermission(Item.BUILD));
                 }
             }
         }

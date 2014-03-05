@@ -9,11 +9,13 @@ public class ManualStep {
     private String upstreamProject;
     private String upstreamId;
     private boolean enabled;
+    private boolean permission;
 
-    public ManualStep(String upstreamProject, String upstreamId, boolean enabled) {
+    public ManualStep(String upstreamProject, String upstreamId, boolean enabled, boolean permission) {
         this.upstreamProject = upstreamProject;
         this.upstreamId = upstreamId;
         this.enabled = enabled;
+        this.permission = permission;
     }
 
     @Exported
@@ -29,5 +31,10 @@ public class ManualStep {
     @Exported
     public boolean isEnabled() {
         return enabled;
+    }
+
+    @Exported
+    public boolean isPermission() {
+        return permission;
     }
 }
