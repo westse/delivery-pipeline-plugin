@@ -62,6 +62,8 @@ public class DeliveryPipelineView extends View {
     private boolean showAvatars = false;
     private int updateInterval = DEFAULT_INTERVAL;
     private boolean showChanges = false;
+    private boolean showTestResult = false;
+
 
     private List<RegExpSpec> regexpFirstJobs;
 
@@ -131,6 +133,15 @@ public class DeliveryPipelineView extends View {
 
     public void setShowChanges(boolean showChanges) {
         this.showChanges = showChanges;
+    }
+
+    @Exported
+    public boolean isShowTestResult() {
+        return showTestResult;
+    }
+
+    public void setShowTestResult(boolean showTestResult) {
+        this.showTestResult = showTestResult;
     }
 
     public void setShowAggregatedPipeline(boolean showAggregatedPipeline) {

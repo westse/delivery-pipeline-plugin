@@ -124,7 +124,29 @@ div.stage-header {
     vertical-align: top;
 }
 
+.taskname {
+    display: inline-block;
+}
+
+.task-test-result {
+    display: inline-block;
+    padding-left: 10px;
+}
+
+span.task-test-result-failed {
+    color: red;
+}
+
+span.task-test-result-skipped {
+    color: orange;
+}
+
+span.task-test-result-success {
+    color: green;
+}
+
 .timestamp {
+    clear: both;
     display: table-cell;
 }
 

@@ -150,6 +150,14 @@ function refreshPipelines(data, divNames, errorDiv, view, showAvatars, showChang
                             "\"><div class=\"task-progress\" style=\"width: " + progress + "%;\"><div class=\"task-content\">" +
                             "<div class=\"taskname\"><a href=\"" + task.link + "\">" + htmlEncode(task.name) + "</a></div>";
 
+                        if (data.showTestResult && task.testResult) {
+                            var failed = task.testResult.failed;
+                            var skipped = task.testResult.skipped;
+                            var success = task.testResult.total - failed - skipped;
+
+                            html = html + '<div class="task-test-result"><span class="task-test-result-success">' + success  + '</span> <span class="task-test-result-skipped">' + skipped + '</span> <span class="task-test-result-failed">' + failed + '</span></div>'
+                        }
+
                         if (timestamp != "") {
                             html = html + "<div id=\"" + id + ".timestamp\" class='timestamp'>" + timestamp + "</div>"
                         }
