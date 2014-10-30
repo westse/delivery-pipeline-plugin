@@ -268,6 +268,17 @@ public class DeliveryPipelineView extends View {
             throw e;
         }
     }
+    public void triggerStart(String projectName) throws TriggerException, AuthenticationException {
+        AbstractProject project = ProjectUtil.getProject(projectName, Jenkins.getInstance());
+        if (!project.hasPermission(Item.BUILD)) {
+            throw new BadCredentialsException("Not auth to build");
+        }
+        boolean success = project.scheduleBuild(0, null, new CauseAction(new Cause.UserIdCause()));
+        if (!success) {
+            throw new TriggerException("Could not trigger build!");
+        }
+    }
+
 
     protected static String triggerExceptionMessage(final String projectName, final String upstreamName, final String buildId) {
         String message = "Could not trigger manual build " + projectName + " for upstream " + upstreamName + " id: " + buildId;
@@ -388,6 +399,7 @@ public class DeliveryPipelineView extends View {
         
         return allView.doCreateItem(req, rsp);
     }
+
 
 
     @Extension

@@ -25,7 +25,7 @@ function updatePipelines(divNames, errorDiv, view, fullscreen, showChanges, time
 }
 
 
-function refreshPipelines(data, divNames, errorDiv, view, showAvatars, showChanges) {
+function refreshPipelines(data, divNames, errorDiv, view, fullscreen, showChanges) {
     var lastUpdate = data.lastUpdated;
 
     if (data.error) {
@@ -52,6 +52,10 @@ function refreshPipelines(data, divNames, errorDiv, view, showAvatars, showChang
             var component = data.pipelines[c];
             var html = "<section class='pipeline-component'>";
             html = html + "<h1>" + htmlEncode(component.name) + "</h1>";
+            if (!fullscreen) {
+                html = html + '<button type="submit" class="pipeline-button-start" onclick="triggerStart(\'' + component.firstJob + '\');">Start</button>';
+            }
+
             if (component.pipelines.length == 0) {
                 html = html + "No builds done yet.";
             }
@@ -326,6 +330,34 @@ function triggerManual(taskId, downstreamProject, upstreamProject, upstreamBuild
         }
     });
 }
+
+function triggerStart(project) {
+    var formData = {project: project};
+
+    var before;
+    if (crumb.value != null && crumb.value != "") {
+        console.info("Crumb found and will be added to request header");
+        before = function(xhr){xhr.setRequestHeader(crumb.fieldName, crumb.value);}
+    } else {
+        console.info("Crumb not needed");
+        before = function(xhr){}
+    }
+
+    Q.ajax({
+        url: rootURL + "/" + view.viewUrl + 'api/start',
+        type: "POST",
+        data: formData,
+        beforeSend: before,
+        timeout: 20000,
+        success: function (data, textStatus, jqXHR) {
+            console.info("Triggered start of " + project + " successfully!")
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            window.alert("Could not start build! error: " + errorThrown + " status: " + textStatus)
+        }
+    });
+}
+
 
 function htmlEncode(html) {
     html = document.createElement('a').appendChild(

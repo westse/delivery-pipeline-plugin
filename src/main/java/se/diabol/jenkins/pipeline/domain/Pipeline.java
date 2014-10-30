@@ -36,7 +36,7 @@ import static com.google.common.collect.Lists.newArrayList;
 @ExportedBean(defaultVisibility = AbstractItem.VISIBILITY)
 public class Pipeline extends AbstractItem {
 
-    private AbstractProject firstProject;
+    private final AbstractProject firstProject;
 
     private List<Stage> stages;
 
@@ -114,7 +114,10 @@ public class Pipeline extends AbstractItem {
         return changes;
     }
 
-
+    @Exported
+    public String getFirstJob() {
+        return firstProject.getFullName();
+    }
 
     /**
      * Created a pipeline prototype for the supplied first project
@@ -137,23 +140,41 @@ public class Pipeline extends AbstractItem {
      * @param noOfPipelines number of pipeline instances
      */
     public List<Pipeline> createPipelineLatest(int noOfPipelines, ItemGroup context) {
+        int index = 0;
         List<Pipeline> result = new ArrayList<Pipeline>();
-
+        if (firstProject.isInQueue()) {
+            result.add(createPipelineLatest(null, context));
+            index = 1;
+        }
         Iterator it = firstProject.getBuilds().iterator();
-        for (int i = 0; i < noOfPipelines && it.hasNext(); i++) {
+        for (int i = index; i < noOfPipelines && it.hasNext(); i++) {
             AbstractBuild firstBuild = (AbstractBuild) it.next();
-            List<Change> pipelineChanges = Change.getChanges(firstBuild);
-            String pipeLineTimestamp = PipelineUtils.formatTimestamp(firstBuild.getTimeInMillis());
-            List<Stage> pipelineStages = new ArrayList<Stage>();
-            for (Stage stage : getStages()) {
-                pipelineStages.add(stage.createLatestStage(context, firstBuild));
-            }
-            Pipeline pipelineLatest = new Pipeline(getName(), firstProject, firstBuild.getDisplayName(), pipeLineTimestamp,
-                                Trigger.getTriggeredBy(firstBuild), UserInfo.getContributors(firstBuild), pipelineStages, false);
-            pipelineLatest.setChanges(pipelineChanges);
+            Pipeline pipelineLatest = createPipelineLatest(firstBuild, context);
             result.add(pipelineLatest);
         }
         return result;
+    }
+
+    private Pipeline createPipelineLatest(AbstractBuild firstBuild, ItemGroup context) {
+        List<Change> pipelineChanges = Change.getChanges(firstBuild);
+
+        String pipeLineTimestamp;
+        String version;
+        if (firstBuild != null) {
+            pipeLineTimestamp = PipelineUtils.formatTimestamp(firstBuild.getTimeInMillis());
+            version = firstBuild.getDisplayName();
+        } else {
+            pipeLineTimestamp = PipelineUtils.formatTimestamp(System.currentTimeMillis());
+            version = "#" + firstProject.getNextBuildNumber();
+        }
+        List<Stage> pipelineStages = new ArrayList<Stage>();
+        for (Stage stage : getStages()) {
+            pipelineStages.add(stage.createLatestStage(context, firstBuild));
+        }
+        Pipeline pipelineLatest = new Pipeline(getName(), firstProject, version, pipeLineTimestamp,
+                            Trigger.getTriggeredBy(firstProject, firstBuild), UserInfo.getContributors(firstBuild), pipelineStages, false);
+        pipelineLatest.setChanges(pipelineChanges);
+        return pipelineLatest;
     }
 
     @Override

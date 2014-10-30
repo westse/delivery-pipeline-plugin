@@ -61,9 +61,14 @@ public class Trigger {
         return description;
     }
 
-    public static List<Trigger> getTriggeredBy(AbstractBuild<?, ?> build) {
+    public static List<Trigger> getTriggeredBy(AbstractProject project, AbstractBuild<?, ?> build) {
         Set<Trigger> result = new HashSet<Trigger>();
-        List<Cause> causes = build.getCauses();
+        List<Cause> causes;
+        if (build != null) {
+            causes = build.getCauses();
+        } else {
+            causes = project.getQueueItem().getCauses();
+        }
         for (Cause cause : causes) {
             if (cause instanceof Cause.UserIdCause) {
                 result.add(new Trigger(Trigger.TYPE_MANUAL, "user " + getDisplayName(((Cause.UserIdCause) cause).getUserName())));
@@ -109,7 +114,7 @@ public class Trigger {
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()){
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
         Trigger trigger = (Trigger) o;

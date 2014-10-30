@@ -45,8 +45,10 @@ public class UserInfo extends AbstractItem {
 
     public static Set<UserInfo> getContributors(AbstractBuild<?, ?> build) {
         Set<UserInfo> contributors = new HashSet<UserInfo>();
-        for (ChangeLogSet.Entry entry : build.getChangeSet()) {
-            contributors.add(UserInfo.getUser(entry.getAuthor()));
+        if (build != null) {
+            for (ChangeLogSet.Entry entry : build.getChangeSet()) {
+                contributors.add(UserInfo.getUser(entry.getAuthor()));
+            }
         }
         return contributors;
     }

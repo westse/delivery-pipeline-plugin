@@ -68,22 +68,25 @@ public class Change {
     }
 
     public static List<Change> getChanges(AbstractBuild<?, ?> build) {
-        RepositoryBrowser repositoryBrowser = build.getProject().getScm().getBrowser();
         List<Change> result = new ArrayList<Change>();
-        for (ChangeLogSet.Entry entry : build.getChangeSet()) {
-            UserInfo user = UserInfo.getUser(entry.getAuthor());
-            String changeLink = null;
-            if (repositoryBrowser != null) {
-                try {
-                    URL link = repositoryBrowser.getChangeSetLink(entry);
-                    if (link != null) {
-                        changeLink = link.toExternalForm();
+        if (build != null) {
+            RepositoryBrowser repositoryBrowser = build.getProject().getScm().getBrowser();
+
+            for (ChangeLogSet.Entry entry : build.getChangeSet()) {
+                UserInfo user = UserInfo.getUser(entry.getAuthor());
+                String changeLink = null;
+                if (repositoryBrowser != null) {
+                    try {
+                        URL link = repositoryBrowser.getChangeSetLink(entry);
+                        if (link != null) {
+                            changeLink = link.toExternalForm();
+                        }
+                    } catch (IOException e) {
+                       LOG.log(Level.WARNING, "Could not get changeset link for: " + build.getProject().getFullDisplayName() + " " + build.getDisplayName(), e);
                     }
-                } catch (IOException e) {
-                   LOG.log(Level.WARNING, "Could not get changeset link for: " + build.getProject().getFullDisplayName() + " " + build.getDisplayName(), e);
                 }
+                result.add(new Change(user, entry.getMsg(), entry.getCommitId(), changeLink));
             }
-            result.add(new Change(user, entry.getMsg(), entry.getCommitId(), changeLink));
         }
         return result;
     }

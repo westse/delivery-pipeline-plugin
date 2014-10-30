@@ -247,6 +247,9 @@ div.pipelineerror {
     display: none;
 }
 
+div.pipeline-button-start {
+}
+
 div.button-start {
     content:url("play.gif");
 }

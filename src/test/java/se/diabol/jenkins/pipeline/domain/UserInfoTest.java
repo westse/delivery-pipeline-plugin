@@ -110,4 +110,12 @@ public class UserInfoTest {
         assertNotEquals(userInfo1.hashCode(), userInfo3.hashCode());
     }
 
+    @Test
+    @WithoutJenkins
+    public void testWithNull() {
+        Set<UserInfo> users = UserInfo.getContributors(null);
+        assertNotNull(users);
+        assertTrue(users.isEmpty());
+    }
+
 }

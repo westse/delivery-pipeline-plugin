@@ -57,5 +57,24 @@ public class PipelineApi extends Api {
 
     }
 
+    @SuppressWarnings("UnusedDeclaration")
+    public void doStart(StaplerRequest req, StaplerResponse rsp,
+                      @QueryParameter String project
+                      ) throws IOException, ServletException {
+        if (project != null) {
+            try {
+                view.triggerStart(project);
+                rsp.setStatus(HttpServletResponse.SC_OK);
+            } catch (TriggerException e) {
+                rsp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            } catch (AuthenticationException e) {
+                rsp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            }
+        } else {
+            rsp.setStatus(HttpServletResponse.SC_NOT_ACCEPTABLE);
+        }
+
+    }
+
 
 }

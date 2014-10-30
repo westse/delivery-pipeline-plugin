@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.jvnet.hudson.test.FakeChangeLogSCM;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockFolder;
+import org.jvnet.hudson.test.WithoutJenkins;
 import se.diabol.jenkins.pipeline.test.FakeRepositoryBrowserSCM;
 import se.diabol.jenkins.pipeline.test.MeanFakeRepositoryBrowserSCM;
 
@@ -37,9 +38,7 @@ import java.util.logging.Handler;
 import java.util.logging.Logger;
 import java.util.logging.StreamHandler;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 
 public class ChangeTest {
 
@@ -126,6 +125,14 @@ public class ChangeTest {
     }
 
 
+    @Test
+    @WithoutJenkins
+    public void testWithNullBuild() {
+        List<Change> changes = Change.getChanges(null);
+        assertNotNull(changes);
+        assertTrue(changes.isEmpty());
+
+    }
 
 
 }
