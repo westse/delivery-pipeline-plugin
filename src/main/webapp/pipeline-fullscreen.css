@@ -5,6 +5,10 @@ body {
     font-size: 14px;
 }
 
+div.pipeline-loading-icon {
+    content: url("dark-load.gif");
+}
+
 section.pipeline-component {
     padding-left: 20px;
 }
@@ -17,7 +21,6 @@ section.pipeline-component h1 {
 section.pipeline-component h2 {
     font-size: 24px;
 }
-
 
 div.changes h1 {
     font-size: 14px;
@@ -41,7 +44,6 @@ div.stage-task {
 div.task-progress {
     min-height: 36px;
 }
-
 
 .stage-name {
     padding: 10px 10px 10px 10px;
@@ -107,6 +109,12 @@ div.task-progress {
     background-color: inherit;
 }
 
+.NOT_BUILT {
+    border-left: 6px solid #8b8989;
+    font-weight: bold;
+    background-color: inherit;
+}
+
 .DISABLED {
     border-left: 6px solid transparent;
     color: #a9a9a9;
@@ -117,8 +125,7 @@ div.task-progress {
     border-left: 6px solid #0092ef;
 }
 
-
 svg.relation path {
     stroke: #fefefe;
-    stroke-width:3;
+    stroke-width: 3;
 }

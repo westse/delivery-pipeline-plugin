@@ -39,7 +39,6 @@ import java.util.Calendar;
 import java.util.List;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SimpleStatusTest {
@@ -118,7 +117,6 @@ public class SimpleStatusTest {
     }
 
 
-
     @Test
     public void testResolveStatusAborted() throws Exception {
         FreeStyleProject project = jenkins.createFreeStyleProject();
@@ -136,16 +134,17 @@ public class SimpleStatusTest {
 
     @Test
     public void testResolveStatusNotBuilt() throws Exception {
-        //Result.NOT_BUILT should never occur for a build, just for a module within a maven build.
         FreeStyleProject project = jenkins.createFreeStyleProject();
         project.getBuildersList().add(new MockBuilder(Result.NOT_BUILT));
         project.scheduleBuild2(0);
         jenkins.waitUntilNoActivity();
-        try {
-            SimpleStatus.resolveStatus(project, project.getLastBuild(), null);
-            fail("Should throw exception here");
-        } catch (IllegalStateException e) {
-        }
+        Status status = SimpleStatus.resolveStatus(project, project.getLastBuild(), null);
+        assertTrue(status.isNotBuilt());
+        assertEquals("NOT_BUILT", status.toString());
+        assertEquals(project.getLastBuild().getTimeInMillis(), status.getLastActivity());
+        assertEquals(project.getLastBuild().getDuration(), status.getDuration());
+        assertNotNull(status.getTimestamp());
+        assertTrue(status.getType().equals(StatusType.NOT_BUILT));
     }
 
 
@@ -228,7 +227,7 @@ public class SimpleStatusTest {
         assertEquals(StatusType.IDLE, pipelines.get(0).getStages().get(1).getTasks().get(0).getStatus().getType());
         assertEquals(StatusType.IDLE, pipelines.get(1).getStages().get(1).getTasks().get(0).getStatus().getType());
 
-        BuildPipelineView view = new BuildPipelineView("", "", new DownstreamProjectGridBuilder("project1"), "0", false, "", false);
+        BuildPipelineView view = new BuildPipelineView("", "", new DownstreamProjectGridBuilder("project1"), "0", false, "");
         project1.setQuietPeriod(3);
         view.triggerManualBuild(1, "project2", "project1");
         pipelines = pipeline.createPipelineLatest(2, jenkins.getInstance());
