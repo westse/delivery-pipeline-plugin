@@ -61,6 +61,7 @@ public class PipelineApi extends Api {
     public void doStart(StaplerRequest req, StaplerResponse rsp,
                       @QueryParameter String project
                       ) throws IOException, ServletException {
+        //TODO check if build already in queue
         if (project != null) {
             try {
                 view.triggerStart(project);
